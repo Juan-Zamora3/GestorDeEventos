@@ -19,15 +19,12 @@ import SeccionIntegrantes from "./modulos/administradorEventos/componentes/creac
 import SeccionAjusteEvento from "./modulos/administradorEventos/componentes/creacionEvento/ajuste/SeccionAjusteEvento";
 import SeccionFormulario from "./modulos/administradorEventos/componentes/creacionEvento/formulario/SeccionFormulario";
 import { PaginaGaleriaPlantillasAdminEventos } from "./modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos";
-
 import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos";
 
-
-/* ========== ADMIN ASISTENCIAS (NUEVO) ========== */
+/* ========== ADMIN ASISTENCIAS ========== */
 import LayoutAdminAsistencias from "./modulos/administradorAsistencias/paginas/LayoutAdminAsistencias";
 import PaginaListaEventosAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaListaEventosAdminAsistencias";
 import PaginaDetalleEventoAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaDetalleEventoAdminAsistencias";
-
 
 function App() {
   return (
@@ -35,7 +32,7 @@ function App() {
       {/* LOGIN */}
       <Route path="/" element={<PaginaInicioSesion />} />
 
-      {/* ADMIN GENERAL */}
+      {/* 🟦 ADMIN GENERAL */}
       <Route path="/admin-general" element={<LayoutAdminGeneral />}>
         <Route index element={<Navigate to="auditoria" replace />} />
         <Route path="auditoria" element={<PaginaAuditoriaAdminGeneral />} />
@@ -43,12 +40,26 @@ function App() {
         <Route path="historial" element={<PaginaHistorialAdminGeneral />} />
       </Route>
 
-      {/* ADMIN EVENTOS */}
+      {/* 🟧 ADMIN EVENTOS */}
       <Route path="/admin-eventos" element={<LayoutAdminEventos />}>
+        {/* /admin-eventos → /admin-eventos/lista */}
         <Route index element={<Navigate to="lista" replace />} />
+
+        {/* Lista de eventos */}
         <Route path="lista" element={<PaginaListaEventosAdminEventos />} />
 
-        <Route path="crear" element={<PaginaCrearEventoAdminEventos />} />
+        {/* Wizard de creación de evento */}
+        <Route path="crear" element={<PaginaCrearEventoAdminEventos />}>
+          {/* /admin-eventos/crear → /admin-eventos/crear/informacion */}
+          <Route index element={<Navigate to="informacion" replace />} />
+          <Route path="informacion" element={<SeccionInformacionEvento />} />
+          <Route path="personal" element={<SeccionPersonal />} />
+          <Route path="integrantes" element={<SeccionIntegrantes />} />
+          <Route path="ajuste" element={<SeccionAjusteEvento />} />
+          <Route path="formulario" element={<SeccionFormulario />} />
+        </Route>
+
+        {/* Galería de plantillas */}
         <Route path="plantillas" element={<PaginaGaleriaPlantillasAdminEventos />} />
       </Route>
 
@@ -58,21 +69,6 @@ function App() {
         <Route index element={<Navigate to="eventos" replace />} />
         <Route path="eventos" element={<PaginaListaEventosAdminAsistencias />} />
         <Route path="eventos/:id" element={<PaginaDetalleEventoAdminAsistencias />} />
-
-
-        <Route path="crear" element={<PaginaCrearEventoAdminEventos />}>
-          <Route index element={<Navigate to="informacion" replace />} />
-          <Route path="informacion" element={<SeccionInformacionEvento />} />
-          <Route path="personal" element={<SeccionPersonal />} />
-          <Route path="integrantes" element={<SeccionIntegrantes />} />
-          <Route path="ajuste" element={<SeccionAjusteEvento />} />
-          <Route path="formulario" element={<SeccionFormulario />} />
-        </Route>
-        <Route
-          path="plantillas"
-          element={<PaginaGaleriaPlantillasAdminEventos />}
-        />
-
       </Route>
 
       {/* RUTA DESCONOCIDA → LOGIN */}
