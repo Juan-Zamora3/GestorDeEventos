@@ -1,5 +1,4 @@
 // src/App.tsx
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import PaginaInicioSesion from "./modulos/autenticacion/paginas/PaginaInicioSesion";
@@ -13,7 +12,12 @@ import { PaginaHistorialAdminGeneral } from "./modulos/administradorGeneral/pagi
 /* ========== ADMIN EVENTOS (exports *default*) ========== */
 /* ========== ADMIN EVENTOS ========== */
 import LayoutAdminEventos from "./modulos/administradorEventos/paginas/LayoutAdminEventos";
-import  {PaginaCrearEventoAdminEventos } from "./modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
+import { PaginaCrearEventoAdminEventos } from "./modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
+import SeccionInformacionEvento from "./modulos/administradorEventos/componentes/creacionEvento/informacion/SeccionInformacionEvento";
+import SeccionPersonal from "./modulos/administradorEventos/componentes/creacionEvento/personal/SeccionPersonal";
+import SeccionIntegrantes from "./modulos/administradorEventos/componentes/creacionEvento/integrantes/SeccionIntegrantes";
+import SeccionAjusteEvento from "./modulos/administradorEventos/componentes/creacionEvento/ajuste/SeccionAjusteEvento";
+import SeccionFormulario from "./modulos/administradorEventos/componentes/creacionEvento/formulario/SeccionFormulario";
 import { PaginaGaleriaPlantillasAdminEventos } from "./modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos";
 import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos";
 
@@ -37,7 +41,14 @@ function App() {
         {/* /admin-eventos → /admin-eventos/lista */}
         <Route index element={<Navigate to="lista" replace />} />
         <Route path="lista" element={<PaginaListaEventosAdminEventos />} />
-        <Route path="crear" element={<PaginaCrearEventoAdminEventos />} />
+        <Route path="crear" element={<PaginaCrearEventoAdminEventos />}>
+          <Route index element={<Navigate to="informacion" replace />} />
+          <Route path="informacion" element={<SeccionInformacionEvento />} />
+          <Route path="personal" element={<SeccionPersonal />} />
+          <Route path="integrantes" element={<SeccionIntegrantes />} />
+          <Route path="ajuste" element={<SeccionAjusteEvento />} />
+          <Route path="formulario" element={<SeccionFormulario />} />
+        </Route>
         <Route
           path="plantillas"
           element={<PaginaGaleriaPlantillasAdminEventos />}

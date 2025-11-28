@@ -19,3 +19,16 @@ export interface PlantillaEvento {
   descripcion?: string;
   imagen: string;
 }
+
+export interface RolEvento {
+  id: string;
+  nombre: string;
+  descripcion: string;
+}
+
+export interface CampoEvento {
+  id: string;
+  nombre: string;
+  tipo: "texto" | "numero" | "opciones" | "fecha";
+  immutable?: boolean;
+}
