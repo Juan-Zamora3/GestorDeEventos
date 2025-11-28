@@ -25,7 +25,7 @@ const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal" }) => {
     } else {
       // 👉 Ir al wizard de creación de evento
       //    (puedes leer `location.state.plantillaId` en la página de crear)
-      navigate("/admin-eventos/crear", {
+      navigate("/admin-eventos/crear/informacion", {
         state: { plantillaId: id },
       });
     }
