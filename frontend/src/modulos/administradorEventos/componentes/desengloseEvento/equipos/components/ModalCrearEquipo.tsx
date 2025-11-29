@@ -1,120 +1,130 @@
-import type { FC } from "react";
-import { useMemo, useState } from "react";
-import { FiPlus } from "react-icons/fi";
-import IntegrantesTable, { type IntegranteRow } from "./IntegrantesTable";
+import React from "react";
 
-interface Props { onClose: () => void }
+interface Props {
+  onClose: () => void;
+}
 
-// Modal de creación/edición de equipo.
-// Diseño fiel al mock: dos filas de campos (Nombre/Telefono y Institución/Correo),
-// bloque para añadir integrante con botón y tabla dividida visualmente.
-// Se deja estado local listo para integrar con API y persistencia.
-const ModalCrearEquipo: FC<Props> = ({ onClose }) => {
-  const initialRows: IntegranteRow[] = useMemo(() => ([
-    { nombre: "Sofía", apellidoPaterno: "González", apellidoMaterno: "Pérez", rol: "Asesor", institucion: "ITSPP", correo: "correo@gmail.com" },
-    { nombre: "Santiago", apellidoPaterno: "Rodríguez", apellidoMaterno: "López", rol: "Líder", institucion: "ITSPP", correo: "correo@gmail.com" },
-    { nombre: "Valentina", apellidoPaterno: "Martínez", apellidoMaterno: "Hernández", rol: "Integrante", institucion: "ITSPP", correo: "correo@gmail.com" },
-    { nombre: "Sebastián", apellidoPaterno: "García", apellidoMaterno: "Sánchez", rol: "Integrante", institucion: "ITSPP", correo: "correo@gmail.com" },
-    { nombre: "Isabella", apellidoPaterno: "Pérez", apellidoMaterno: "Ramírez", rol: "Integrante", institucion: "ITSPP", correo: "correo@gmail.com", telefono: "6381006000" },
-  ]), []);
-
-  // Estado del formulario (listo para envío a backend)
-  const [nombreEquipo, setNombreEquipo] = useState("");
-  const [telefonoEquipo, setTelefonoEquipo] = useState("");
-  const [institucionEquipo, setInstitucionEquipo] = useState("");
-  const [correoEquipo, setCorreoEquipo] = useState("");
-
-  // Estado de integrantes a mostrar en la tabla
-  const [rows, setRows] = useState<IntegranteRow[]>(initialRows);
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoApellidoP, setNuevoApellidoP] = useState("");
-  const [nuevoApellidoM, setNuevoApellidoM] = useState("");
-
-  const handleAddIntegrante = () => {
-    if (!nuevoNombre || !nuevoApellidoP || !nuevoApellidoM) return;
-    setRows((prev) => [
-      ...prev,
-      { nombre: nuevoNombre, apellidoPaterno: nuevoApellidoP, apellidoMaterno: nuevoApellidoM, rol: "Integrante", institucion: "", correo: "" },
-    ]);
-    setNuevoNombre("");
-    setNuevoApellidoP("");
-    setNuevoApellidoM("");
-  };
-
-  const handleSubmit = () => {
-    // listo para implementar envío al backend
-    onClose();
-  };
-
+const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative w-[92%] max-w-[880px] bg-white rounded-[28px] shadow-2xl overflow-hidden">
-        <div className="px-7 pt-7 pb-3">
-          <h3 className="text-xl font-semibold text-slate-900">Añadir equipo</h3>
-          <p className="text-sm text-slate-600 mt-2">En este apartado se agregará la informacion para la creacion de un Nuevo equipo</p>
-        </div>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+      <div className="w-[950px] max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <header className="px-8 py-6 border-b border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Añadir equipo
+          </h2>
+          <p className="mt-1 text-xs text-slate-500 max-w-xl">
+            En este apartado se agregará la información para la creación de un
+            Nuevo equipo.
+          </p>
+        </header>
 
-        <div className="px-7 pb-7 space-y-4">
-          {/* Fila 1: Nombre del equipo / Teléfono */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="px-8 py-5 space-y-5 overflow-auto">
+          {/* Datos generales del equipo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del equipo</label>
-              <input value={nombreEquipo} onChange={(e) => setNombreEquipo(e.target.value)}
-                     className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-                     placeholder="Ej. correo@gmail.com" />
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Los Astros" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Telefono</label>
-              <input value={telefonoEquipo} onChange={(e) => setTelefonoEquipo(e.target.value)}
-                     className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-                     placeholder="Ej. (638) 000-0000" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Teléfono</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. (638) 000-0000" />
             </div>
-          </div>
-
-          {/* Fila 2: Institución / Correo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Institución</label>
-              <input value={institucionEquipo} onChange={(e) => setInstitucionEquipo(e.target.value)}
-                     className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-                     placeholder="Ej. Instituto tecnologico superior de puerto peñasco" />
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Instituto Tecnológico Superior de Puerto Peñasco" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Correo</label>
-              <input value={correoEquipo} onChange={(e) => setCorreoEquipo(e.target.value)}
-                     className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-                     placeholder="correo@gmail.com" />
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="correo@gmail.com" />
             </div>
           </div>
 
           {/* Añadir integrante */}
-          <div>
-            <p className="text-sm font-semibold text-slate-800 mb-2">Añadir integrante</p>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center">
-              <input value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)}
-                     className="rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Sofia" />
-              <input value={nuevoApellidoP} onChange={(e) => setNuevoApellidoP(e.target.value)}
-                     className="rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Gonzales" />
-              <input value={nuevoApellidoM} onChange={(e) => setNuevoApellidoM(e.target.value)}
-                     className="rounded-2xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Perez" />
-              <div className="flex items-center justify-end">
-                <button onClick={handleAddIntegrante}
-                        className="h-10 w-10 rounded-xl text-white bg-gradient-to-br from-[#5B4AE5] to-[#7B5CFF] shadow-md flex items-center justify-center">
-                  <FiPlus />
-                </button>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Nombre
+              </label>
+              <input
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
+                placeholder="Ej. Sofía"
+              />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Apellido Paterno
+              </label>
+              <input
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
+                placeholder="Ej. Gonzales"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Apellido materno
+              </label>
+              <input
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
+                placeholder="Ej. Perez"
+              />
+            </div>
+            <button
+              type="button"
+              className="h-10 rounded-xl bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-lg flex items-center justify-center shadow-sm"
+            >
+              +
+            </button>
           </div>
 
-          {/* Tabla única con columnas: Nombre, Apellido Paterno, Apellido Materno, Rol */}
-          <IntegrantesTable rows={rows} variant="simple" />
+          {/* Tabla integrantes (mock) */}
+          <div className="border border-slate-100 rounded-2xl overflow-hidden text-xs">
+            <table className="w-full">
+              <thead className="bg-[#F5F6FB] text-slate-500">
+                <tr>
+                  <th className="text-left px-4 py-2">Nombre</th>
+                  <th className="text-left px-4 py-2">Apellido Paterno</th>
+                  <th className="text-left px-4 py-2">Apellido Materno</th>
+                  <th className="text-left px-4 py-2">Rol</th>
+                  <th className="text-left px-4 py-2">Institución</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-[11px]">
+                {["Sofía", "Santiago", "Valentina", "Sebastián", "Isabella"].map(
+                  (nombre, i) => (
+                    <tr key={nombre}>
+                      <td className="px-4 py-2">{nombre}</td>
+                      <td className="px-4 py-2">González</td>
+                      <td className="px-4 py-2">Pérez</td>
+                      <td className="px-4 py-2">
+                        {i === 1 ? "Líder" : i === 0 ? "Asesor" : "Integrante"}
+                      </td>
+                      <td className="px-4 py-2">ITSPP</td>
+                      <td className="px-4 py-2 text-right">⋮</td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div className="px-7 pb-7 flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-5 h-11 rounded-2xl bg-[#EFF0FF] text-[#4A4691]">Cancelar</button>
-          <button onClick={handleSubmit} className="px-5 h-11 rounded-2xl text-white bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF]">Aceptar</button>
-        </div>
+        {/* Footer */}
+        <footer className="px-8 py-4 border-t border-slate-100 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-7 py-2.5 rounded-full bg-[#EEF0F7] text-sm font-semibold text-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="px-7 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white shadow-sm"
+          >
+            Aceptar
+          </button>
+        </footer>
       </div>
     </div>
   );

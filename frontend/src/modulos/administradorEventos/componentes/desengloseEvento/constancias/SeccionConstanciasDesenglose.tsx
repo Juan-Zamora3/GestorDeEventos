@@ -1,6 +1,8 @@
 import type { FC } from "react";
 import { useMemo, useState } from "react";
-import { FiChevronRight, FiDownload, FiPrinter, FiEye } from "react-icons/fi";
+import { FiChevronRight, FiDownload, FiPrinter, FiEye, FiSend } from "react-icons/fi";
+import ModalDescargarConstancias from "./ModalDescargarConstancias";
+import ModalEnviarConstancias from "./ModalEnviarConstancias";
 
 interface Persona { id: string; nombre: string; }
 interface Categoria { id: string; titulo: string; personas: Persona[]; }
@@ -19,6 +21,8 @@ const SeccionConstanciasDesenglose: FC = () => {
     return s;
   });
   const [index, setIndex] = useState<number>(0);
+  const [openDescargar, setOpenDescargar] = useState(false);
+  const [openEnviar, setOpenEnviar] = useState(false);
 
   const actual = useMemo(()=> categorias.find(c=> c.id===catId)!, [catId]);
   const seleccionIds = seleccionPorCat[catId] ?? new Set<string>();
@@ -81,7 +85,8 @@ const SeccionConstanciasDesenglose: FC = () => {
         <div className="flex items-center gap-2">
           <button type="button" onClick={imprimir} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiPrinter /> Imprimir</button>
           <button type="button" onClick={ver} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiEye /> Ver</button>
-          <button type="button" onClick={descargar} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-2"><FiDownload /> Descargar</button>
+          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiSend /> Enviar</button>
+          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-2"><FiDownload /> Descargar</button>
         </div>
       </div>
 
@@ -127,6 +132,20 @@ const SeccionConstanciasDesenglose: FC = () => {
           </div>
         </main>
       </div>
+      {openDescargar && (
+        <ModalDescargarConstancias
+          abierto={openDescargar}
+          onCerrar={()=> setOpenDescargar(false)}
+          onAceptar={(cfg)=> { void cfg; setOpenDescargar(false); descargar(); }}
+        />
+      )}
+      {openEnviar && (
+        <ModalEnviarConstancias
+          abierto={openEnviar}
+          onCerrar={()=> setOpenEnviar(false)}
+          onAceptar={(cfg)=> { void cfg; setOpenEnviar(false); }}
+        />
+      )}
     </section>
   );
 };
