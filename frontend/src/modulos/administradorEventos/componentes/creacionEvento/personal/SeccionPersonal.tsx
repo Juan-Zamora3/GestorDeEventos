@@ -25,7 +25,9 @@ const SeccionPersonal: FC = () => {
   const navigate = useNavigate();
   // Estado de roles y selección actual
   const [roles, setRoles] = useState<RolUI[]>(rolesIniciales);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(undefined);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(
+    rolesIniciales.find((r) => r.activo)?.id
+  );
   // Campos base inmutables por rol
   const baseCampos: CampoEvento[] = [
     { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
@@ -33,10 +35,13 @@ const SeccionPersonal: FC = () => {
     { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
     { id: "campo-correo", nombre: "Correo", tipo: "texto", immutable: true },
   ];
+  const extraInicial: CampoEvento[] = [
+    { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+  ];
   // Mapa rol→lista de campos
   const [camposPorRol, setCamposPorRol] = useState<Record<string, CampoEvento[]>>(() => {
     const map: Record<string, CampoEvento[]> = {};
-    rolesIniciales.forEach((r) => { map[r.id] = [...baseCampos]; });
+    rolesIniciales.forEach((r) => { map[r.id] = [...baseCampos, ...extraInicial]; });
     return map;
   });
   const [campoSeleccionadoId, setCampoSeleccionadoId] = useState<string | undefined>(undefined);
@@ -79,7 +84,15 @@ const SeccionPersonal: FC = () => {
   const manejarEliminar = (id: string) => { setRoles((prev) => prev.filter((r) => r.id !== id)); setModalAbierto(false); };
 
   // Abre modal de campo (crear/editar); evita editar campos inmutables
-  const abrirCrearCampo = () => { if (!selectedRoleId) return; setModalCampoModo("crear"); setCampoEditando(undefined); setModalCampoAbierto(true); };
+  const abrirCrearCampo = () => {
+    if (!selectedRoleId) {
+      const primeroActivo = roles.find((r) => r.activo)?.id ?? roles[0]?.id;
+      if (primeroActivo) setSelectedRoleId(primeroActivo);
+    }
+    setModalCampoModo("crear");
+    setCampoEditando(undefined);
+    setModalCampoAbierto(true);
+  };
   const abrirEditarCampo = (campo: CampoEvento) => { if (campo.immutable) return; setModalCampoModo("editar"); setCampoEditando(campo); setModalCampoAbierto(true); };
   const cerrarModalCampo = () => { setModalCampoAbierto(false); };
   // Guarda campo (crea o actualiza) para el rol seleccionado
