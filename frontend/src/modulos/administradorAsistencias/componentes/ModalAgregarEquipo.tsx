@@ -19,26 +19,24 @@ const ModalAgregarEquipo: React.FC<Props> = ({ onClose }) => {
         </header>
 
         <div className="px-8 py-5 space-y-5 overflow-auto">
-          {/* Nombre equipo */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Nombre del Equipo
-            </label>
-            <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-              placeholder="Ej. Los Astros"
-            />
-          </div>
-
-          {/* Institución */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Institución
-            </label>
-            <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
-              placeholder="Ej. Instituto Tecnológico Superior de Puerto Peñasco"
-            />
+          {/* Datos generales del equipo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del equipo</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Los Astros" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Teléfono</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. (638) 000-0000" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Institución</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Instituto Tecnológico Superior de Puerto Peñasco" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Correo</label>
+              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="correo@gmail.com" />
+            </div>
           </div>
 
           {/* Añadir integrante */}
@@ -88,8 +86,6 @@ const ModalAgregarEquipo: React.FC<Props> = ({ onClose }) => {
                   <th className="text-left px-4 py-2">Apellido Materno</th>
                   <th className="text-left px-4 py-2">Rol</th>
                   <th className="text-left px-4 py-2">Institución</th>
-                  <th className="text-left px-4 py-2">Correo</th>
-                  <th className="text-left px-4 py-2">Teléfono</th>
                   <th className="px-4 py-2" />
                 </tr>
               </thead>
@@ -104,8 +100,6 @@ const ModalAgregarEquipo: React.FC<Props> = ({ onClose }) => {
                         {i === 1 ? "Líder" : i === 0 ? "Asesor" : "Integrante"}
                       </td>
                       <td className="px-4 py-2">ITSPP</td>
-                      <td className="px-4 py-2">correo@gmail.com</td>
-                      <td className="px-4 py-2">6381006000</td>
                       <td className="px-4 py-2 text-right">⋮</td>
                     </tr>
                   )
