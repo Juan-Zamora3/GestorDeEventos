@@ -13,11 +13,13 @@ import { PaginaHistorialAdminGeneral } from "./modulos/administradorGeneral/pagi
 import LayoutAdminEventos from "./modulos/administradorEventos/paginas/LayoutAdminEventos";
 
 import { PaginaCrearEventoAdminEventos } from "./modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
+import PaginaDesengloseEventoAdminEventos from "./modulos/administradorEventos/paginas/PaginaDesengloseEventoAdminEventos";
 import SeccionInformacionEvento from "./modulos/administradorEventos/componentes/creacionEvento/informacion/SeccionInformacionEvento";
 import SeccionPersonal from "./modulos/administradorEventos/componentes/creacionEvento/personal/SeccionPersonal";
 import SeccionIntegrantes from "./modulos/administradorEventos/componentes/creacionEvento/integrantes/SeccionIntegrantes";
 import SeccionAjusteEvento from "./modulos/administradorEventos/componentes/creacionEvento/ajuste/SeccionAjusteEvento";
 import SeccionFormulario from "./modulos/administradorEventos/componentes/creacionEvento/formulario/SeccionFormulario";
+import SeccionInformacionDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/informacion/SeccionInformacionDesenglose";
 import { PaginaGaleriaPlantillasAdminEventos } from "./modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos";
 import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos";
 
@@ -61,6 +63,12 @@ function App() {
 
         {/* Galería de plantillas */}
         <Route path="plantillas" element={<PaginaGaleriaPlantillasAdminEventos />} />
+
+        {/* Desenglose de evento */}
+        <Route path="evento/:id" element={<PaginaDesengloseEventoAdminEventos />}>
+          <Route index element={<SeccionInformacionDesenglose />} />
+          <Route path="informacion" element={<SeccionInformacionDesenglose />} />
+        </Route>
       </Route>
 
       {/* 🟣 ADMIN ASISTENCIAS */}
