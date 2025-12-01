@@ -13,15 +13,20 @@ const plantillas: PlantillaEvento[] = [
 
 interface Props {
   size?: "normal" | "large";
+  onMasClick?: () => void;
 }
 
-const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal" }) => {
+const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal", onMasClick }) => {
   const navigate = useNavigate();
 
   const manejarClickPlantilla = (id: string) => {
     if (id === "mas") {
-      // 👉 Ir a la galería de plantillas
-      navigate("/admin-eventos/plantillas");
+      // 👉 Mostrar galería embebida si se provee callback; si no, navegar
+      if (onMasClick) {
+        onMasClick();
+      } else {
+        navigate("/admin-eventos/plantillas");
+      }
     } else {
       // 👉 Ir al wizard de creación de evento
       //    (puedes leer `location.state.plantillaId` en la página de crear)

@@ -33,7 +33,7 @@ const HeaderAdminEventos: FC = () => {
         <div className="px-8 pt-4">
           <div className="grid grid-cols-3 items-center">
             <div className="flex items-center">
-              <button type="button" onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+              <button type="button" onClick={() => navigate("/admin-eventos/lista")} className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
                 <FiChevronLeft />
               </button>
             </div>

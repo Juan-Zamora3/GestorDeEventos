@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 import TarjetaPlantillaEvento from "../componentes/TarjetaPlantillaEvento";
 import type { PlantillaEvento } from "../componentes/tiposAdminEventos";
@@ -15,12 +16,13 @@ const plantillas: PlantillaEvento[] = [
 ];
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#476AC6] text-white">
       <section className="px-16 pt-10 pb-14">
         {/* Fila superior: botón atrás + título */}
         <div className="flex items-center gap-4 mb-10">
-          <button className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center text-2xl leading-none">
+          <button onClick={() => navigate("/admin-eventos/lista")} className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center text-2xl leading-none">
             ←
           </button>
           <h1 className="text-[32px] font-semibold tracking-tight">
@@ -36,6 +38,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
               titulo: "Evento en blanco",
               imagen: "/EventoBlanco.png",
             }}
+            onClick={() => navigate("/admin-eventos/crear")}
           />
         </div>
 
@@ -64,7 +67,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
             <TarjetaPlantillaEvento
               key={p.id}
               plantilla={p}
-              onClick={() => console.log("Plantilla seleccionada:", p.id)}
+              onClick={() => navigate("/admin-eventos/crear")}
             />
           ))}
         </div>

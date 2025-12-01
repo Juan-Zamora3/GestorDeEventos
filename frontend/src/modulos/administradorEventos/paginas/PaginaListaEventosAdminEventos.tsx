@@ -1,5 +1,6 @@
 // src/modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos.tsx
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiChevronDown,
@@ -45,68 +46,84 @@ const eventosMock: EventoCardAdminEventos[] = [
 ];
 
 export const PaginaListaEventosAdminEventos: React.FC = () => {
+  const [animDown, setAnimDown] = useState(false);
+  const navigate = useNavigate();
+  const irGaleriaConTransicion = () => {
+    setAnimDown(true);
+    window.setTimeout(() => {
+      navigate("/admin-eventos/plantillas");
+    }, 400);
+  };
   return (
-    <div className="h-full flex flex-col bg-[#EEF0F7]">
+    <div className="h-full flex flex-col bg-white">
       {/* ZONA AZUL — título + plantillas (nada de barra blanca aquí) */}
       <section className="bg-gradient-to-r from-[#192D69] to-[#6581D6] px-14 pt-10 pb-10 text-white shadow-sm">
         <h1 className="text-4xl font-bold mb-8">Crear Evento</h1>
 
         {/* Plantillas más grandes, alineadas a la derecha como en el diseño */}
         <div className="flex justify-end w-full">
-          <FilaPlantillasRapidas size="large" />
+          <FilaPlantillasRapidas size="large" onMasClick={irGaleriaConTransicion} />
         </div>
+        
+        
       </section>
 
-      {/* BARRA BLANCA DE BUSCADOR en zona gris, tocando el borde azul */}
-      <section className="px-14 -mt-6">
-        <div className="bg-white w-full rounded-full px-6 py-3 shadow-sm flex items-center gap-4">
-          {/* Buscador */}
-          <div className="flex items-center gap-3 flex-1">
-            <FiSearch className="text-slate-400 text-lg" />
-            <input
-              type="text"
-              placeholder="Buscar evento"
-              className="flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-            />
-          </div>
+      <div className={`transition-transform duration-500 ease-out ${animDown ? "translate-y-24" : "translate-y-0"}`}>
+        <div className="bg-[#EEF0F7] rounded-t-[24px]">
+          {/* BARRA BLANCA DE BUSCADOR en zona gris, tocando el borde azul */}
+          <section className="px-14 -mt-6">
+            <div className="bg-white w-full rounded-full px-6 py-3 shadow-sm flex items-center gap-4">
+              {/* Buscador */}
+              <div className="flex items-center gap-3 flex-1">
+                <FiSearch className="text-slate-400 text-lg" />
+                <input
+                  type="text"
+                  placeholder="Buscar evento"
+                  className="flex-1 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                />
+              </div>
 
-          {/* Tipo */}
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
-          >
-            <span>Tipo</span>
-            <FiChevronDown className="text-slate-400" />
-          </button>
+              {/* Tipo */}
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
+              >
+                <span>Tipo</span>
+                <FiChevronDown className="text-slate-400" />
+              </button>
 
-          {/* Estado */}
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
-          >
-            <span>Estado</span>
-            <FiChevronDown className="text-slate-400" />
-          </button>
+              {/* Estado */}
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
+              >
+                <span>Estado</span>
+                <FiChevronDown className="text-slate-400" />
+              </button>
 
-          {/* Botones de vista y orden */}
-          <div className="flex items-center gap-2">
-            <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
-              <FiGrid />
-            </button>
-            <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-              <FiList />
-            </button>
-            <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
-              <FiArrowDown />
-            </button>
-          </div>
+              {/* Botones de vista y orden */}
+              <div className="flex items-center gap-2">
+                <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
+                  <FiGrid />
+                </button>
+                <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                  <FiList />
+                </button>
+                <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
+                  <FiArrowDown />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* GRID DE EVENTOS */}
+          <section className="px-14 pt-6 pb-8">
+            <div className="bg-white rounded-3xl shadow-sm px-6 py-4">
+              <GridEventosAdminEventos eventos={eventosMock} />
+            </div>
+          </section>
         </div>
-      </section>
-
-      {/* GRID DE EVENTOS */}
-      <section className="flex-1 px-14 pt-6 pb-8">
-        <GridEventosAdminEventos eventos={eventosMock} />
-      </section>
+      </div>
     </div>
   );
 };

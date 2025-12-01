@@ -2,6 +2,7 @@
 // Página PaginaCrearEventoAdminEventos
 // Notas: layout del wizard de creación; renderiza Aside + Outlet de pasos.
 import { Outlet, useLocation } from "react-router-dom";
+import { useState } from "react";
 import AsidePasosCrearEvento from "../componentes/creacionEvento/AsidePasosCrearEvento";
 
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
@@ -18,6 +19,27 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     ? 4
     : 5;
 
+  type Tiempo = { id: string; nombre: string; inicio: string; fin: string };
+  type AjusteDraft = {
+    caracteristicas: Record<string, boolean>;
+    envioQR: string;
+    costoInscripcion: string;
+    tiempos: Tiempo[];
+  };
+
+  const [ajuste, setAjuste] = useState<AjusteDraft>({
+    caracteristicas: {
+      asistencia_qr: true,
+      confirmacion_pago: false,
+      envio_whatsapp: false,
+      envio_correo: true,
+      asistencia_tiempos: false,
+    },
+    envioQR: "whatsapp",
+    costoInscripcion: "",
+    tiempos: [],
+  });
+
   return (
     // 🔵 FONDO AZUL – ocupa toda la pantalla
     // Fondo y contenedor del wizard (scroll dentro del wrapper)
@@ -27,7 +49,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         {/* Aside con pasos del flujo */}
         <AsidePasosCrearEvento pasoActual={pasoActual} />
         {/* Renderiza el contenido del paso actual mediante rutas hijas */}
-        <Outlet />
+        <Outlet context={{ ajuste, setAjuste }} />
       </div>
     </div>
   );

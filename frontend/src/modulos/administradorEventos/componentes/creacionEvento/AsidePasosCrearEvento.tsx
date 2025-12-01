@@ -1,6 +1,7 @@
 // Componente AsidePasosCrearEvento
 // Notas: muestra los pasos del wizard y resalta el actual.
 import type { FC } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Props { pasoActual: number }
 
@@ -14,6 +15,7 @@ const pasos = [
 ];
 
 const AsidePasosCrearEvento: FC<Props> = ({ pasoActual }) => {
+  const navigate = useNavigate();
   return (
     // Aside lateral con indicador visual del paso activo
     <aside className="w-80 h-full min-h-0 bg-[#F4F2FF] px-10 py-10 flex flex-col border-r border-[#E0DDFB]">
@@ -39,7 +41,13 @@ const AsidePasosCrearEvento: FC<Props> = ({ pasoActual }) => {
         })}
       </ol>
       {/* Acción secundaria para abortar el proceso */}
-      <button type="button" className="mt-auto w-full rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white font-semibold py-3 text-sm shadow-md">Cancelar</button>
+      <button
+        type="button"
+        onClick={() => navigate("/admin-eventos/lista")}
+        className="mt-auto w-full rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white font-semibold py-3 text-sm shadow-md"
+      >
+        Cancelar
+      </button>
     </aside>
   );
 };

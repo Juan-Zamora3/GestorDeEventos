@@ -1,32 +1,29 @@
 // Sección Ajuste del evento (Paso 4)
 // Configura características del evento: asistencia, confirmación, envío por WhatsApp/Correo,
 // opciones de QR, costo de inscripción y tiempos de asistencia.
-import type { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import type { FC, Dispatch, SetStateAction } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import { FiClock } from "react-icons/fi";
 import ModalTiempoEvento from "./ModalTiempoEvento";
 
 const SeccionAjusteEvento: FC = () => {
   const navigate = useNavigate();
-  // Estado de toggles de características
-  const [caracteristicas, setCaracteristicas] = useState<Record<string, boolean>>({
-    asistencia_qr: true,
-    confirmacion_pago: false,
-    envio_whatsapp: false,
-    envio_correo: true,
-    asistencia_tiempos: false,
-  });
-  const toggleCar = (id: keyof typeof caracteristicas) =>
-    setCaracteristicas((prev) => ({ ...prev, [id]: !prev[id] }));
-
-  // Opción de envío de QR (WhatsApp o Correo)
-  const [envioQR, setEnvioQR] = useState<string>("whatsapp");
-  const [costoInscripcion, setCostoInscripcion] = useState<string>("");
-
-  // Tiempos de asistencia
   type Tiempo = { id: string; nombre: string; inicio: string; fin: string };
-  const [tiempos, setTiempos] = useState<Tiempo[]>([]);
+  type AjusteDraft = {
+    caracteristicas: Record<string, boolean>;
+    envioQR: string;
+    costoInscripcion: string;
+    tiempos: Tiempo[];
+  };
+  const { ajuste, setAjuste } = useOutletContext<{ ajuste: AjusteDraft; setAjuste: Dispatch<SetStateAction<AjusteDraft>> }>();
+  const caracteristicas = ajuste.caracteristicas;
+  const toggleCar = (id: keyof typeof caracteristicas) =>
+    setAjuste((prev) => ({
+      ...prev,
+      caracteristicas: { ...prev.caracteristicas, [id]: !prev.caracteristicas[id] },
+    }));
+
   const [modalTiempoAbierto, setModalTiempoAbierto] = useState<boolean>(false);
   const [modalTiempoModo, setModalTiempoModo] = useState<"crear" | "editar">("crear");
   const [tiempoEditando, setTiempoEditando] = useState<Tiempo | undefined>(undefined);
@@ -35,16 +32,20 @@ const SeccionAjusteEvento: FC = () => {
   const abrirEditarTiempo = (t: Tiempo) => { setModalTiempoModo("editar"); setTiempoEditando(t); setModalTiempoAbierto(true); };
   const cerrarModalTiempo = () => setModalTiempoAbierto(false);
   const manejarGuardarTiempo = (data: Omit<Tiempo, "id"> & { id?: string }) => {
-    setTiempos((prev) => {
-      if (modalTiempoModo === "crear") return [...prev, { id: genId(), nombre: data.nombre, inicio: data.inicio, fin: data.fin }];
-      if (modalTiempoModo === "editar" && tiempoEditando)
-        return prev.map((t) => (t.id === tiempoEditando.id ? { ...t, nombre: data.nombre, inicio: data.inicio, fin: data.fin } : t));
+    setAjuste((prev) => {
+      const lista = prev.tiempos;
+      if (modalTiempoModo === "crear") {
+        return { ...prev, tiempos: [...lista, { id: genId(), nombre: data.nombre, inicio: data.inicio, fin: data.fin }] };
+      }
+      if (modalTiempoModo === "editar" && tiempoEditando) {
+        return { ...prev, tiempos: lista.map((t) => (t.id === tiempoEditando.id ? { ...t, nombre: data.nombre, inicio: data.inicio, fin: data.fin } : t)) };
+      }
       return prev;
     });
     setModalTiempoAbierto(false);
   };
   const manejarEliminarTiempo = (id: string) => {
-    setTiempos((prev) => prev.filter((t) => t.id !== id));
+    setAjuste((prev) => ({ ...prev, tiempos: prev.tiempos.filter((t) => t.id !== id) }));
     setModalTiempoAbierto(false);
     setTiempoEditando(undefined);
   };
@@ -92,14 +93,14 @@ const SeccionAjusteEvento: FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Envio de QR</label>
-              <select value={envioQR} onChange={(e) => setEnvioQR(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]">
+              <select value={ajuste.envioQR} onChange={(e) => setAjuste((prev) => ({ ...prev, envioQR: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]">
                 <option value="whatsapp">WhatsApp</option>
                 <option value="correo">Correo</option>
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Costo de Inscripción</label>
-              <input type="number" min={0} placeholder="500" value={costoInscripcion} onChange={(e) => setCostoInscripcion(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+              <input type="number" min={0} placeholder="500" value={ajuste.costoInscripcion} onChange={(e) => setAjuste((prev) => ({ ...prev, costoInscripcion: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
             </div>
           </div>
         </div>
@@ -108,17 +109,29 @@ const SeccionAjusteEvento: FC = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-slate-700">Añadir Tiempo</p>
-            <button type="button" onClick={abrirCrearTiempo} disabled={!caracteristicas.asistencia_tiempos} className={`h-9 w-9 rounded-full text-white shadow-md flex items-center justify-center ${caracteristicas.asistencia_tiempos ? "bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF]" : "bg-slate-300"}`}>
+            <button
+              type="button"
+              onClick={() => {
+                if (!caracteristicas.asistencia_tiempos) {
+                  setAjuste((prev) => ({
+                    ...prev,
+                    caracteristicas: { ...prev.caracteristicas, asistencia_tiempos: true },
+                  }));
+                }
+                abrirCrearTiempo();
+              }}
+              className={`h-9 w-9 rounded-full text-white shadow-md flex items-center justify-center ${caracteristicas.asistencia_tiempos ? "bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF]" : "bg-slate-300"}`}
+            >
               +
             </button>
           </div>
           <div className="rounded-2xl border border-[#E0DDFB] bg-white p-4">
-            {tiempos.length === 0 ? (
+            {ajuste.tiempos.length === 0 ? (
               <p className="text-xs text-slate-500">No se han agregado tiempos.</p>
             ) : (
               <div className="flex flex-wrap gap-3">
-                {tiempos.map((t) => (
-                  <button key={t.id} type="button" onDoubleClick={() => abrirEditarTiempo(t)} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm border bg-white text-slate-700 border-slate-300 hover:bg-[#EFF0FF] hover:text-[#5B4AE5] hover:border-[#C9C5FF]">
+                {ajuste.tiempos.map((t) => (
+                  <button key={t.id} type="button" onClick={() => abrirEditarTiempo(t)} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm border bg-white text-slate-700 border-slate-300 hover:bg-[#EFF0FF] hover:text-[#5B4AE5] hover:border-[#C9C5FF]">
                     <FiClock />
                     <span>{t.nombre}</span>
                     <span className="text-slate-400">{t.inicio}–{t.fin}</span>
