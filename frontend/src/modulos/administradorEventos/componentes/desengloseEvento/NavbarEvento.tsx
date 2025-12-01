@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiChevronLeft } from "react-icons/fi";
 
@@ -21,14 +22,16 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
   const base = `/admin-eventos/evento/${id ?? ""}`;
   const path = location.pathname.replace(base, "").replace(/^\//, "");
   const activo = path.length === 0 ? "informacion" : path.split("/")[0];
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setMounted(true), 50); return () => window.clearTimeout(t); }, []);
 
   return (
     <header className="flex-shrink-0">
-      <div className="bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white rounded-t-[32px]">
+      <div className={`bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white rounded-t-[32px] transform-gpu transition-all duration-700 ${mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"}`}>
         <div className="px-6 sm:px-10 pt-6">
           <div className="grid grid-cols-3 items-center">
             <div className="flex items-center">
-              <button type="button" onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"><FiChevronLeft /></button>
+              <button type="button" onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transform-gpu transition hover:scale-105"><FiChevronLeft /></button>
             </div>
             <div className="flex items-center justify-center">
               <h1 className="text-xl sm:text-2xl font-semibold">{titulo}</h1>
@@ -46,7 +49,7 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
                     <button
                       type="button"
                       onClick={() => navigate(t.id === "informacion" ? base : `${base}/${t.id}`)}
-                      className={`block w-28 text-center transition ${selected ? "text-[#4A4691] font-semibold" : "hover:text-[#4A4691]"}`}
+                      className={`block w-28 text-center transform-gpu transition ${selected ? "text-[#4A4691] font-semibold" : "hover:text-[#4A4691]"} hover:-translate-y-[2px] hover:scale-[1.03]`}
                     >
                       {t.label}
                     </button>

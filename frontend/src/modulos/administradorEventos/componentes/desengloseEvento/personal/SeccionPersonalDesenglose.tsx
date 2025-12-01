@@ -102,9 +102,9 @@ const SeccionPersonalDesenglose: FC = () => {
           <input type="text" placeholder="Buscar" value={busqueda} onChange={(e)=>setBusqueda(e.target.value)} className="flex-1 bg-transparent outline-none" />
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={selectAll} className="px-5 py-2.5 rounded-full bg-[#E6E7EF] text-sm font-semibold text-slate-700">Seleccionar</button>
-          <button type="button" onClick={eliminarSeleccionados} className="px-5 py-2.5 rounded-full bg-[#E6E7EF] text-sm font-semibold text-slate-700">Eliminar</button>
-          <button type="button" className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white shadow-sm">Nuevo Equipo</button>
+          <button type="button" onClick={selectAll} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]">Seleccionar</button>
+          <button type="button" onClick={eliminarSeleccionados} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]">Eliminar</button>
+          <button type="button" className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]">Nuevo Equipo</button>
         </div>
       </div>
 

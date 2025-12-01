@@ -83,10 +83,10 @@ const SeccionConstanciasDesenglose: FC = () => {
           })}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={imprimir} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiPrinter /> Imprimir</button>
-          <button type="button" onClick={ver} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiEye /> Ver</button>
-          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2"><FiSend /> Enviar</button>
-          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-2"><FiDownload /> Descargar</button>
+          <button type="button" onClick={imprimir} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiPrinter /> Imprimir</button>
+          <button type="button" onClick={ver} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiEye /> Ver</button>
+          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiSend /> Enviar</button>
+          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"><FiDownload /> Descargar</button>
         </div>
       </div>
 

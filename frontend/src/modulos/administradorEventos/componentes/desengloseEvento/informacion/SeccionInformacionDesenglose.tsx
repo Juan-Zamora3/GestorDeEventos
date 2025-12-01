@@ -6,8 +6,8 @@ const SeccionInformacionDesenglose: FC = () => {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-slate-900">Concurso de robotica junior</h2>
         <div className="flex items-center gap-2">
-          <button type="button" className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold">Editar</button>
-          <button type="button" className="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-semibold">Eliminar Evento</button>
+          <button type="button" className="px-4 py-2 rounded-full border border-slate-200 bg-white text-slate-700 text-xs font-semibold shadow-sm transform-gpu transition hover:bg-slate-50 hover:-translate-y-[1px] hover:scale-[1.02]">Editar</button>
+          <button type="button" className="px-4 py-2 rounded-full bg-rose-600 text-white text-xs font-semibold shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]">Eliminar Evento</button>
         </div>
       </div>
 

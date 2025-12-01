@@ -22,7 +22,7 @@ interface Props {
 const EquipoCard: FC<Props> = ({ data, seleccionado, onToggleSeleccion, onVerParticipantes }) => {
   return (
     <article
-      className={`bg-white rounded-2xl border ${seleccionado ? "border-[#5B4AE5]" : "border-slate-200"} shadow-sm overflow-hidden cursor-pointer`}
+      className={`bg-white rounded-2xl border ${seleccionado ? "border-[#5B4AE5]" : "border-slate-200"} shadow-sm overflow-hidden cursor-pointer transform-gpu transition-all hover:shadow-md hover:-translate-y-1 hover:scale-[1.02]`}
       onClick={onToggleSeleccion}
     >
       <div className="h-1 w-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF]" />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiUsers, FiUser } from "react-icons/fi";
 import ModalAgregarEquipo from "./components/ModalCrearEquipo";
 import ModalDetalleEquipo from "./components/ModalDetalleEquipo";
@@ -65,6 +65,8 @@ const SeccionEquiposDesenglose: React.FC = () => {
 
   
 
+  const [entered, setEntered] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setEntered(true), 50); return () => window.clearTimeout(t); }, []);
   return (
     <>
       <div className="bg-white rounded-3xl shadow-sm px-8 py-6 flex flex-col h-full">
@@ -112,12 +114,13 @@ const SeccionEquiposDesenglose: React.FC = () => {
 
         {/* Grid de tarjetas de equipos */}
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtrados.map((eq) => (
+          {filtrados.map((eq, idx) => (
             <button
               key={eq.id}
               type="button"
               onClick={() => { if (!seleccionando) setShowDetalle(true); }}
-              className={`bg-white rounded-2xl shadow-[0_0_0_1px_rgba(15,23,42,0.06)] hover:shadow-md transition px-5 py-4 text-left border-l-[4px] ${seleccion.has(eq.id) ? "border-[#5B4AE5]" : "border-[#7B5CFF]"}`}
+              className={`bg-white rounded-2xl shadow-[0_0_0_1px_rgba(15,23,42,0.06)] hover:shadow-lg px-5 py-4 text-left border-l-[4px] ${seleccion.has(eq.id) ? "border-[#5B4AE5]" : "border-[#7B5CFF]"} transform-gpu transition-all hover:-translate-y-1 hover:scale-[1.02] ${entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-6"}`}
+              style={{ transitionDelay: `${idx * 80}ms` }}
             >
               <p className="text-sm font-semibold text-slate-900 mb-1">
                 {eq.nombre}
