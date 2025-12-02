@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { FiSearch, FiMoreVertical } from "react-icons/fi";
+import Agregarrapido from "./Agregarrapido";
 
 interface Registro {
   nombre: string;
@@ -32,14 +33,6 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
   const [busqueda, setBusqueda] = useState("");
   const [registros, setRegistros] = useState<Registro[]>(baseDatos);
   const [agregarOpen, setAgregarOpen] = useState(false);
-  const [nuevo, setNuevo] = useState({
-    nombre: "",
-    apPaterno: "",
-    apMaterno: "",
-    telefono: "",
-    correo: "",
-    institucion: "",
-  });
 
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -86,9 +79,9 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
         </div>
 
         <div className="border-t border-slate-100">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[540px] overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="bg-[#F5F6FB] text-slate-500">
+              <thead className="bg-[#F5F6FB] text-slate-500 sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 text-left">Nombre Completo</th>
                   <th className="px-4 py-3 text-left">Código</th>
@@ -137,59 +130,25 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
         </div>
       </div>
       {agregarOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
-          <div className="w-[720px] bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className="px-8 py-6">
-              <h2 className="text-lg font-semibold text-slate-900">Añadir Participante</h2>
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre</label>
-                  <input value={nuevo.nombre} onChange={(e)=>setNuevo({...nuevo, nombre:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Exp. John Carter" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Apellido Paterno</label>
-                  <input value={nuevo.apPaterno} onChange={(e)=>setNuevo({...nuevo, apPaterno:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Exp. Torres" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Apellido Materno</label>
-                  <input value={nuevo.apMaterno} onChange={(e)=>setNuevo({...nuevo, apMaterno:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Exp. Zambada" />
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Telefono</label>
-                  <input value={nuevo.telefono} onChange={(e)=>setNuevo({...nuevo, telefono:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="(123) 000-0000" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Correo</label>
-                  <input value={nuevo.correo} onChange={(e)=>setNuevo({...nuevo, correo:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Exp. Company" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Institución</label>
-                <input value={nuevo.institucion} onChange={(e)=>setNuevo({...nuevo, institucion:e.target.value})} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Exp. San Francisco, CA" />
-              </div>
-              <div className="mt-6">
-                <button type="button" onClick={()=>{
-                  const nombreCompleto = `${nuevo.nombre} ${nuevo.apPaterno} ${nuevo.apMaterno}`.trim();
-                  const codigo = `TEC${String(registros.length + 1).padStart(3, "0")}`;
-                  const nuevoReg: Registro = {
-                    nombre: nombreCompleto || "Participante",
-                    codigo,
-                    pagado: false,
-                    entrada: false,
-                    regreso: false,
-                    entradaEstado: "Pendiente",
-                    regresoEstado: "Pendiente",
-                  };
-                  setRegistros((prev)=> [nuevoReg, ...prev]);
-                  setAgregarOpen(false);
-                  setNuevo({ nombre:"", apPaterno:"", apMaterno:"", telefono:"", correo:"", institucion:"" });
-                }} className="px-6 py-2.5 rounded-xl bg-[#3A82F6] text-white text-sm font-semibold">Agregar</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Agregarrapido
+          open={agregarOpen}
+          onClose={()=> setAgregarOpen(false)}
+          onAdd={(data)=>{
+            const nombreCompleto = `${data.nombre} ${data.apPaterno} ${data.apMaterno}`.trim();
+            const codigo = `TEC${String(registros.length + 1).padStart(3, "0")}`;
+            const nuevoReg: Registro = {
+              nombre: nombreCompleto || "Participante",
+              codigo,
+              pagado: false,
+              entrada: false,
+              regreso: false,
+              entradaEstado: "Pendiente",
+              regresoEstado: "Pendiente",
+            };
+            setRegistros((prev)=> [nuevoReg, ...prev]);
+            setAgregarOpen(false);
+          }}
+        />
       )}
     </div>
   );
