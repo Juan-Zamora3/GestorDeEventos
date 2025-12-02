@@ -71,7 +71,7 @@ const SeccionEquiposDesenglose: React.FC = () => {
     <>
       <div className="bg-white rounded-3xl shadow-sm px-8 py-6 flex flex-col h-full">
         {/* Buscador + acciones */}
-        <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex-1 max-w-2xl">
             <div className="relative flex items-center">
               <input
@@ -85,31 +85,33 @@ const SeccionEquiposDesenglose: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAgregar(true)}
-            className="rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white px-6 py-2.5 text-sm font-semibold shadow-sm"
-          >
-            Nuevo Equipo
-          </button>
-          <button
-            type="button"
-            onClick={() => setSeleccionando((s) => !s)}
-            className="rounded-full bg-white text-slate-800 px-6 py-2.5 text-sm font-semibold shadow-sm border border-slate-200"
-          >
-            {seleccionando ? "Cancelar selección" : "Seleccionar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (seleccion.size === 0) return;
-              setLista((prev) => prev.filter((e) => !seleccion.has(e.id)));
-              setSeleccion(new Set());
-            }}
-            className="rounded-full bg-slate-600 text-white px-6 py-2.5 text-sm font-semibold shadow-sm"
-          >
-            Eliminar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSeleccionando((s) => !s)}
+              className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
+            >
+              {seleccionando ? "Cancelar selección" : "Seleccionar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (seleccion.size === 0) return;
+                setLista((prev) => prev.filter((e) => !seleccion.has(e.id)));
+                setSeleccion(new Set());
+              }}
+              className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
+            >
+              Eliminar
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAgregar(true)}
+              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"
+            >
+              Nuevo Equipo
+            </button>
+          </div>
         </div>
 
         {/* Grid de tarjetas de equipos */}

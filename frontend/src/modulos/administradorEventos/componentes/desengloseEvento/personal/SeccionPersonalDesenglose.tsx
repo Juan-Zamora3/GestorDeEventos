@@ -120,9 +120,9 @@ const SeccionPersonalDesenglose: FC = () => {
           </button>
         </div>
         <div className="border-t border-slate-100">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[540px] overflow-y-auto">
             <table className="w-full text-xs">
-              <thead className="bg-[#F5F6FB] text-slate-500">
+              <thead className="bg-[#F5F6FB] text-slate-500 sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 text-left">Selección</th>
                   <th className="px-4 py-3 text-left">Nombre</th>

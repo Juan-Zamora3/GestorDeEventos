@@ -78,15 +78,22 @@ const SeccionConstanciasDesenglose: FC = () => {
           {categorias.map(c => {
             const active = c.id===catId;
             return (
-              <button key={c.id} type="button" onClick={()=>{ setCatId(c.id); setIndex(0); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold ${active?"bg-[#5B4AE5] text-white":"bg-[#F2F3FB] text-slate-700"}`}>{c.titulo}</button>
+              <button
+                key={c.id}
+                type="button"
+                onClick={()=>{ setCatId(c.id); setIndex(0); }}
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold transform-gpu transition ${active?"bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]":"bg-[#F2F3FB] text-slate-700 shadow-sm hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"}`}
+              >
+                {c.titulo}
+              </button>
             );
           })}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={imprimir} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiPrinter /> Imprimir</button>
-          <button type="button" onClick={ver} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiEye /> Ver</button>
-          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-3 py-1.5 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiSend /> Enviar</button>
-          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"><FiDownload /> Descargar</button>
+          <button type="button" onClick={imprimir} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiPrinter /> Imprimir</button>
+          <button type="button" onClick={ver} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiEye /> Ver</button>
+          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiSend /> Enviar</button>
+          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"><FiDownload /> Descargar</button>
         </div>
       </div>
 
