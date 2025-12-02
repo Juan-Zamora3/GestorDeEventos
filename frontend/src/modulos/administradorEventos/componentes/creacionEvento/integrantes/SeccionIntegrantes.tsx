@@ -23,14 +23,34 @@ const SeccionIntegrantes: FC = () => {
   const [seleccion, setSeleccion] = useState<Record<"asesor" | "lider_equipo", boolean>>({ asesor: false, lider_equipo: false });
   const toggleSel = (id: "asesor" | "lider_equipo") => setSeleccion((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Campos necesarios (variables) con predefinidos inmutables
-  const baseCampos: CampoEvento[] = [
+  const baseInmutables: CampoEvento[] = [
     { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
-    { id: "campo-correo", nombre: "Correo", tipo: "texto", immutable: true },
-    { id: "campo-telefono", nombre: "Telefono", tipo: "texto", immutable: true },
-    { id: "campo-institucion", nombre: "Institución", tipo: "texto", immutable: true },
+    { id: "campo-apellido-paterno", nombre: "Apellido paterno", tipo: "texto", immutable: true },
+    { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
   ];
-  const [campos, setCampos] = useState<CampoEvento[]>(baseCampos);
+  const [perfilSeleccionadoId, setPerfilSeleccionadoId] = useState<string>("participante");
+  const [camposPorPerfil, setCamposPorPerfil] = useState<Record<string, CampoEvento[]>>({
+    participante: [
+      ...baseInmutables,
+      { id: "campo-correo", nombre: "Correo", tipo: "texto" },
+      { id: "campo-telefono", nombre: "Telefono", tipo: "texto" },
+      { id: "campo-institucion", nombre: "Institución", tipo: "texto" },
+    ],
+    asesor: [
+      ...baseInmutables,
+      { id: "campo-correo-asesor", nombre: "Correo", tipo: "texto" },
+    ],
+    integrante: [
+      ...baseInmutables,
+      { id: "campo-correo-integrante", nombre: "Correo", tipo: "texto" },
+      { id: "campo-telefono-integrante", nombre: "Telefono", tipo: "texto" },
+      { id: "campo-institucion-integrante", nombre: "Institución", tipo: "texto" },
+    ],
+    lider_equipo: [
+      ...baseInmutables,
+      { id: "campo-correo-lider", nombre: "Correo", tipo: "texto" },
+    ],
+  });
   const [campoSeleccionadoId, setCampoSeleccionadoId] = useState<string | undefined>(undefined);
 
   // Categorías
@@ -49,18 +69,25 @@ const SeccionIntegrantes: FC = () => {
   const abrirEditarCampo = (campo: CampoEvento) => { if (campo.immutable) return; setModalCampoModo("editar"); setCampoEditando(campo); setModalCampoAbierto(true); };
   const cerrarModalCampo = () => setModalCampoAbierto(false);
   const manejarGuardarCampo = (data: CampoEvento) => {
-    setCampos((prev) => {
+    setCamposPorPerfil((prev) => {
+      const lista = prev[perfilSeleccionadoId] ?? [];
       if (modalCampoModo === "crear") {
-        return [...prev, { id: generarCampoId(), nombre: data.nombre, tipo: data.tipo }];
+        return { ...prev, [perfilSeleccionadoId]: [...lista, { id: generarCampoId(), nombre: data.nombre, tipo: data.tipo }] };
       }
       if (modalCampoModo === "editar" && campoEditando) {
-        return prev.map((c) => (c.id === campoEditando.id ? { ...c, nombre: data.nombre, tipo: data.tipo } : c));
+        return { ...prev, [perfilSeleccionadoId]: lista.map((c) => (c.id === campoEditando.id ? { ...c, nombre: data.nombre, tipo: data.tipo } : c)) };
       }
       return prev;
     });
     setModalCampoAbierto(false);
   };
-  const manejarEliminarCampo = (id: string) => { setCampos((prev) => prev.filter((c) => c.id !== id)); setModalCampoAbierto(false); };
+  const manejarEliminarCampo = (id: string) => {
+    setCamposPorPerfil((prev) => ({
+      ...prev,
+      [perfilSeleccionadoId]: (prev[perfilSeleccionadoId] ?? []).filter((c) => c.id !== id),
+    }));
+    setModalCampoAbierto(false);
+  };
 
   const abrirCrearCategoria = () => { setModalCatModo("crear"); setCategoriaEditando(undefined); setModalCatAbierto(true); };
   const abrirEditarCategoria = (cat: Categoria) => { setModalCatModo("editar"); setCategoriaEditando(cat); setModalCatAbierto(true); };
@@ -160,37 +187,6 @@ const SeccionIntegrantes: FC = () => {
           )}
 
 
-          <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">Selección</p>
-            <div className="rounded-xl  px-1 py-3">
-              <p className="text-[11px] text-slate-600">Selección de opciones adicionales según modalidad.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(modo === "equipos"
-                ? [
-                    { id: "asesor", titulo: "Asesor", desc: "Habilitar asesor en equipos." },
-                    { id: "lider_equipo", titulo: "Líder de equipo", desc: "Permitir seleccionar líder del equipo." },
-                  ]
-                : [
-                    { id: "asesor", titulo: "Asesor", desc: "Habilitar registro de asesor para participantes." },
-                  ]
-              ).map((opt) => {
-                const activo = !!seleccion[opt.id as keyof typeof seleccion];
-                return (
-                  <div key={opt.id} className={`rounded-2xl border px-4 py-3 ${activo ? "bg-[#EFF0FF] border-[#C9C5FF]" : "bg-white border-slate-200"}`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-semibold ${activo ? "text-[#5B4AE5]" : "text-slate-700"}`}>{opt.titulo}</span>
-                      <button type="button" onClick={() => toggleSel(opt.id as "asesor" | "lider_equipo")} className={`h-5 w-10 rounded-full transition ${activo ? "bg-[#5B4AE5]" : "bg-slate-300"}`}>
-                        <span className={`block h-5 w-5 bg-white rounded-full shadow transform transition ${activo ? "translate-x-5" : "translate-x-0"}`} />
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-500">{opt.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Categorías */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-slate-700">Categorías</p>
@@ -206,7 +202,53 @@ const SeccionIntegrantes: FC = () => {
             )}
           </div>
 
-          {/* Campos necesarios */}
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Selección</p>
+            <div className="rounded-xl px-1 py-3">
+              <p className="text-[11px] text-slate-600">Selecciona el perfil para configurar sus campos. En equipos, el perfil "Integrante" siempre está activo y no se puede apagar.</p>
+            </div>
+            <div className={`grid grid-cols-1 ${modo === "equipos" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-3`}>
+              {(
+                modo === "equipos"
+                  ? [
+                      { id: "integrante", titulo: "Integrante", desc: "Variables de integrantes del equipo.", toggle: false },
+                      { id: "lider_equipo", titulo: "Líder de equipo", desc: "Permitir seleccionar líder del equipo.", toggle: true },
+                      { id: "asesor", titulo: "Asesor", desc: "Habilitar asesor en equipos.", toggle: true },
+                    ]
+                  : [
+                      { id: "participante", titulo: "Participante", desc: "Variables del participante individual.", toggle: false },
+                      { id: "asesor", titulo: "Asesor", desc: "Habilitar registro de asesor.", toggle: true },
+                    ]
+              ).map((opt) => {
+                const activoPerfil = perfilSeleccionadoId === opt.id;
+                const switchOn = opt.toggle ? !!seleccion[opt.id as keyof typeof seleccion] : true;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPerfilSeleccionadoId(opt.id)}
+                    className={`text-left rounded-2xl border px-4 py-3 transition min-h-[72px] flex flex-col gap-1 ${activoPerfil ? "bg-[#EFF0FF] border-[#C9C5FF]" : switchOn ? "bg-white border-slate-200 hover:bg-[#EFF0FF] hover:border-[#C9C5FF]" : "bg-white border-slate-200"}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-semibold ${activoPerfil ? "text-[#5B4AE5]" : switchOn ? "text-slate-700" : "text-slate-400"}`}>{opt.titulo}</span>
+                      {opt.toggle && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleSel(opt.id as "asesor" | "lider_equipo"); }}
+                          className={`h-5 w-10 rounded-full transition ${switchOn ? "bg-[#5B4AE5]" : "bg-slate-300"}`}
+                        >
+                          <span className={`block h-5 w-5 bg-white rounded-full shadow transform transition ${switchOn ? "translate-x-5" : "translate-x-0"}`} />
+                        </button>
+                      )}
+                    </div>
+                    <p className={`text-[11px] ${switchOn ? "text-slate-500" : "text-slate-400"}`}>{opt.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Campos necesarios del perfil seleccionado */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-slate-700">Campos necesarios</p>
             <button type="button" onClick={abrirCrearCampo} className="h-9 w-9 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white shadow-md flex items-center justify-center">+</button>
@@ -215,7 +257,7 @@ const SeccionIntegrantes: FC = () => {
             <p className="text-[11px] text-slate-600">Los siguientes campos se convierten en variables y parte del formulario de inscripción. Los inmutables aparecen en gris.</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {campos.map((campo) => {
+            {(camposPorPerfil[perfilSeleccionadoId] ?? []).map((campo) => {
               const seleccionado = campoSeleccionadoId === campo.id;
               const noEditable = !!campo.immutable;
               const baseClase = `inline-flex items-center rounded-full px-4 py-2 text-sm border transition`;
