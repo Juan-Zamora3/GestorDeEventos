@@ -3,6 +3,7 @@
 // Notas: layout del wizard de creación; renderiza Aside + Outlet de pasos.
 import { Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
+import type { CampoEvento, ParticipantesDraft } from "../componentes/tiposAdminEventos";
 import AsidePasosCrearEvento from "../componentes/creacionEvento/AsidePasosCrearEvento";
 
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
@@ -40,6 +41,42 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     tiempos: [],
   });
 
+  const baseInmutables: CampoEvento[] = [
+    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
+    { id: "campo-apellido-paterno", nombre: "Apellido paterno", tipo: "texto", immutable: true },
+    { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
+  ];
+  const [participantes, setParticipantes] = useState<ParticipantesDraft>({
+    modo: "individual",
+    maxParticipantes: "",
+    maxEquipos: "",
+    minIntegrantes: "1",
+    maxIntegrantes: "5",
+    seleccion: { asesor: false, lider_equipo: false },
+    camposPorPerfil: {
+      participante: [
+        ...baseInmutables,
+        { id: "campo-correo", nombre: "Correo", tipo: "texto" },
+        { id: "campo-telefono", nombre: "Telefono", tipo: "texto" },
+        { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+      ],
+      asesor: [
+        ...baseInmutables,
+        { id: "campo-correo-asesor", nombre: "Correo", tipo: "texto" },
+      ],
+      integrante: [
+        ...baseInmutables,
+        { id: "campo-correo-integrante", nombre: "Correo", tipo: "texto" },
+        { id: "campo-telefono-integrante", nombre: "Telefono", tipo: "texto" },
+        { id: "campo-institucion-integrante", nombre: "Institución", tipo: "opciones" },
+      ],
+      lider_equipo: [
+        ...baseInmutables,
+        { id: "campo-correo-lider", nombre: "Correo", tipo: "texto" },
+      ],
+    },
+  });
+
   return (
     // 🔵 FONDO AZUL – ocupa toda la pantalla
     // Fondo y contenedor del wizard (scroll dentro del wrapper)
@@ -49,7 +86,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         {/* Aside con pasos del flujo */}
         <AsidePasosCrearEvento pasoActual={pasoActual} />
         {/* Renderiza el contenido del paso actual mediante rutas hijas */}
-        <Outlet context={{ ajuste, setAjuste }} />
+        <Outlet context={{ ajuste, setAjuste, participantes, setParticipantes }} />
       </div>
     </div>
   );

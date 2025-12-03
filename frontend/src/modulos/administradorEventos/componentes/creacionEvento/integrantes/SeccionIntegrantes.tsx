@@ -2,9 +2,9 @@
 // Permite elegir modalidad de participación (individual/equipos) y configurar opciones.
 // Incluye: selector de modalidad, definición de cupos, categorías y campos necesarios.
 import type { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { useState } from "react";
-import type { CampoEvento } from "../../tiposAdminEventos";
+import type { CampoEvento, ParticipantesDraft } from "../../tiposAdminEventos";
 import ModalCampoEvento from "../ModalCampoEvento";
 import ModalCategoriaIntegrantes from "./ModalCategoriaIntegrantes";
 import { FiUser, FiUsers } from "react-icons/fi";
@@ -13,45 +13,21 @@ import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 
 const SeccionIntegrantes: FC = () => {
   const navigate = useNavigate();
+  const { participantes, setParticipantes } = useOutletContext<{ participantes: ParticipantesDraft; setParticipantes: React.Dispatch<React.SetStateAction<ParticipantesDraft>> }>();
   // Estado de modalidad: individual o por equipos
-  const [modo, setModo] = useState<"individual" | "equipos">("individual");
+  const modo = participantes.modo;
   // Cupos para individual
-  const [maxParticipantes, setMaxParticipantes] = useState<string>("");
+  const maxParticipantes = participantes.maxParticipantes;
   // Cupos para equipos
-  const [maxEquipos, setMaxEquipos] = useState<string>("");
-  const [minIntegrantes, setMinIntegrantes] = useState<string>("1");
-  const [maxIntegrantes, setMaxIntegrantes] = useState<string>("5");
-  const [seleccion, setSeleccion] = useState<Record<"asesor" | "lider_equipo", boolean>>({ asesor: false, lider_equipo: false });
-  const toggleSel = (id: "asesor" | "lider_equipo") => setSeleccion((prev) => ({ ...prev, [id]: !prev[id] }));
+  const maxEquipos = participantes.maxEquipos;
+  const minIntegrantes = participantes.minIntegrantes;
+  const maxIntegrantes = participantes.maxIntegrantes;
+  const seleccion = participantes.seleccion;
+  const toggleSel = (id: "asesor" | "lider_equipo") => setParticipantes((prev) => ({ ...prev, seleccion: { ...prev.seleccion, [id]: !prev.seleccion[id] } }));
 
-  const baseInmutables: CampoEvento[] = [
-    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
-    { id: "campo-apellido-paterno", nombre: "Apellido paterno", tipo: "texto", immutable: true },
-    { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
-  ];
+  
   const [perfilSeleccionadoId, setPerfilSeleccionadoId] = useState<string>("participante");
-  const [camposPorPerfil, setCamposPorPerfil] = useState<Record<string, CampoEvento[]>>({
-    participante: [
-      ...baseInmutables,
-      { id: "campo-correo", nombre: "Correo", tipo: "texto" },
-      { id: "campo-telefono", nombre: "Telefono", tipo: "texto" },
-      { id: "campo-institucion", nombre: "Institución", tipo: "texto" },
-    ],
-    asesor: [
-      ...baseInmutables,
-      { id: "campo-correo-asesor", nombre: "Correo", tipo: "texto" },
-    ],
-    integrante: [
-      ...baseInmutables,
-      { id: "campo-correo-integrante", nombre: "Correo", tipo: "texto" },
-      { id: "campo-telefono-integrante", nombre: "Telefono", tipo: "texto" },
-      { id: "campo-institucion-integrante", nombre: "Institución", tipo: "texto" },
-    ],
-    lider_equipo: [
-      ...baseInmutables,
-      { id: "campo-correo-lider", nombre: "Correo", tipo: "texto" },
-    ],
-  });
+  const camposPorPerfil = participantes.camposPorPerfil;
   const [campoSeleccionadoId, setCampoSeleccionadoId] = useState<string | undefined>(undefined);
 
   // Categorías
@@ -70,22 +46,25 @@ const SeccionIntegrantes: FC = () => {
   const abrirEditarCampo = (campo: CampoEvento) => { if (campo.immutable) return; setModalCampoModo("editar"); setCampoEditando(campo); setModalCampoAbierto(true); };
   const cerrarModalCampo = () => setModalCampoAbierto(false);
   const manejarGuardarCampo = (data: CampoEvento) => {
-    setCamposPorPerfil((prev) => {
-      const lista = prev[perfilSeleccionadoId] ?? [];
+    setParticipantes((prev) => {
+      const lista = prev.camposPorPerfil[perfilSeleccionadoId] ?? [];
       if (modalCampoModo === "crear") {
-        return { ...prev, [perfilSeleccionadoId]: [...lista, { id: generarCampoId(), nombre: data.nombre, tipo: data.tipo }] };
+        return { ...prev, camposPorPerfil: { ...prev.camposPorPerfil, [perfilSeleccionadoId]: [...lista, { id: generarCampoId(), nombre: data.nombre, tipo: data.tipo }] } };
       }
       if (modalCampoModo === "editar" && campoEditando) {
-        return { ...prev, [perfilSeleccionadoId]: lista.map((c) => (c.id === campoEditando.id ? { ...c, nombre: data.nombre, tipo: data.tipo } : c)) };
+        return { ...prev, camposPorPerfil: { ...prev.camposPorPerfil, [perfilSeleccionadoId]: lista.map((c) => (c.id === campoEditando.id ? { ...c, nombre: data.nombre, tipo: data.tipo } : c)) } };
       }
       return prev;
     });
     setModalCampoAbierto(false);
   };
   const manejarEliminarCampo = (id: string) => {
-    setCamposPorPerfil((prev) => ({
+    setParticipantes((prev) => ({
       ...prev,
-      [perfilSeleccionadoId]: (prev[perfilSeleccionadoId] ?? []).filter((c) => c.id !== id),
+      camposPorPerfil: {
+        ...prev.camposPorPerfil,
+        [perfilSeleccionadoId]: (prev.camposPorPerfil[perfilSeleccionadoId] ?? []).filter((c) => c.id !== id),
+      },
     }));
     setModalCampoAbierto(false);
   };
@@ -124,7 +103,7 @@ const SeccionIntegrantes: FC = () => {
           <button
             type="button"
             aria-label="Modo Individual"
-            onClick={() => setModo("individual")}
+            onClick={() => setParticipantes((prev) => ({ ...prev, modo: "individual" }))}
             className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition w-full sm:w-auto ${
               modo === "individual"
                 ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]"
@@ -145,7 +124,7 @@ const SeccionIntegrantes: FC = () => {
           <button
             type="button"
             aria-label="Modo por equipos"
-            onClick={() => setModo("equipos")}
+            onClick={() => setParticipantes((prev) => ({ ...prev, modo: "equipos" }))}
             className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition w-full sm:w-auto ${
               modo === "equipos"
                 ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]"
@@ -168,21 +147,21 @@ const SeccionIntegrantes: FC = () => {
           {modo === "individual" ? (
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-700">Definir cantidad máxima de participantes</label>
-              <input type="number" min={1} placeholder="ej. 500" value={maxParticipantes} onChange={(e) => setMaxParticipantes(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+              <input type="number" min={1} placeholder="ej. 500" value={maxParticipantes} onChange={(e) => setParticipantes((prev) => ({ ...prev, maxParticipantes: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Máx. equipos participantes</label>
-                <input type="number" min={1} placeholder="ej. 50" value={maxEquipos} onChange={(e) => setMaxEquipos(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+                <input type="number" min={1} placeholder="ej. 50" value={maxEquipos} onChange={(e) => setParticipantes((prev) => ({ ...prev, maxEquipos: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Mín. integrantes por equipo</label>
-                <input type="number" min={1} placeholder="ej. 1" value={minIntegrantes} onChange={(e) => setMinIntegrantes(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+                <input type="number" min={1} placeholder="ej. 1" value={minIntegrantes} onChange={(e) => setParticipantes((prev) => ({ ...prev, minIntegrantes: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Máx. integrantes por equipo</label>
-                <input type="number" min={1} placeholder="ej. 5" value={maxIntegrantes} onChange={(e) => setMaxIntegrantes(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+                <input type="number" min={1} placeholder="ej. 5" value={maxIntegrantes} onChange={(e) => setParticipantes((prev) => ({ ...prev, maxIntegrantes: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
               </div>
             </div>
           )}

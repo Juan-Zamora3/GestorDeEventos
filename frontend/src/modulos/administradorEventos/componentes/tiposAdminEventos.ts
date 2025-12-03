@@ -32,3 +32,15 @@ export interface CampoEvento {
   tipo: "texto" | "numero" | "opciones" | "fecha";
   immutable?: boolean;
 }
+
+export type PerfilId = "participante" | "asesor" | "integrante" | "lider_equipo";
+
+export interface ParticipantesDraft {
+  modo: "individual" | "equipos";
+  maxParticipantes: string;
+  maxEquipos: string;
+  minIntegrantes: string;
+  maxIntegrantes: string;
+  seleccion: Record<"asesor" | "lider_equipo", boolean>;
+  camposPorPerfil: Record<PerfilId | string, CampoEvento[]>;
+}

@@ -1,11 +1,12 @@
 // Sección Formulario (Paso 5)
 // Placeholder para definición de formularios de inscripción/asistencia.
 import type { FC } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import { useState } from "react";
 import ModalPreguntaFormulario from "./ModalPreguntaFormulario";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
+import type { ParticipantesDraft, CampoEvento } from "../../tiposAdminEventos";
 
 type TipoCampo =
   | "texto_corto"
@@ -24,6 +25,9 @@ type PreguntaForm = {
   placeholder?: string;
   obligatorio: boolean;
   config?: { opciones?: string[] };
+  source?: "manual" | "participantes";
+  locked?: boolean;
+  tipoLabel?: string;
 };
 
 const genId = () => `preg-${Math.random().toString(36).slice(2, 8)}`;
@@ -61,7 +65,8 @@ const labelTipo = (t: TipoCampo) => {
 
 const SeccionFormulario: FC = () => {
   const navigate = useNavigate();
-  const [modo, setModo] = useState<"individual" | "equipos">("individual");
+  const { participantes } = useOutletContext<{ participantes: ParticipantesDraft }>();
+  const modo = participantes.modo;
   const [preguntas, setPreguntas] = useState<PreguntaForm[]>(() => [...BASE_PREGUNTAS]);
   const [menuAbiertoId, setMenuAbiertoId] = useState<string | undefined>(undefined);
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
@@ -91,23 +96,40 @@ const SeccionFormulario: FC = () => {
     setModalAbierto(false);
   };
 
+  const mapCampoToPregunta = (c: CampoEvento): PreguntaForm => {
+    const nombre = c.nombre;
+    const tipo: TipoCampo = c.tipo === "numero" ? "numero" : c.tipo === "fecha" ? "fecha" : c.tipo === "opciones" ? "seleccion_multiple" : nombre.toLowerCase().includes("correo") ? "email" : nombre.toLowerCase().includes("telefono") ? "telefono" : "texto_corto";
+    return { id: `auto-${c.id}`, nombre, tipo, placeholder: "sección de registro", obligatorio: true, source: "participantes", locked: true };
+  };
+
   const preguntasConReglas = () => {
-    if (modo !== "equipos") return preguntas;
-    const regla = { id: "min-int", nombre: "Cantidad mínima de integrantes", tipo: "numero" as const, placeholder: "ej. 1", obligatorio: true };
-    const equipoPreset: PreguntaForm[] = [
-      { id: "equipo-lider-nombre", nombre: "Nombre-Líder", tipo: "texto_corto", placeholder: "ej. Juan", obligatorio: false },
-      { id: "equipo-lider-ap-paterno", nombre: "Apellido paterno-Líder", tipo: "texto_corto", placeholder: "ej. Pérez", obligatorio: false },
-      { id: "equipo-lider-ap-materno", nombre: "Apellido materno-Líder", tipo: "texto_corto", placeholder: "ej. García", obligatorio: false },
-      { id: "equipo-lider-correo", nombre: "Correo-Líder", tipo: "email", placeholder: "ej. lider@correo.com", obligatorio: false },
-      { id: "equipo-part1-nombre", nombre: "Nombre-participante1", tipo: "texto_corto", placeholder: "ej. Ana", obligatorio: false },
-      { id: "equipo-part1-ap-paterno", nombre: "Apellido paterno-participante1", tipo: "texto_corto", placeholder: "ej. López", obligatorio: false },
-      { id: "equipo-part1-ap-materno", nombre: "Apellido materno-participante1", tipo: "texto_corto", placeholder: "ej. Ruiz", obligatorio: false },
-      { id: "equipo-part2-nombre", nombre: "Nombre-participante2", tipo: "texto_corto", placeholder: "ej. Carlos", obligatorio: false },
-      { id: "equipo-part2-ap-paterno", nombre: "Apellido paterno-participante2", tipo: "texto_corto", placeholder: "ej. Hernández", obligatorio: false },
-      { id: "equipo-part2-ap-materno", nombre: "Apellido materno-participante2", tipo: "texto_corto", placeholder: "ej. Díaz", obligatorio: false },
-      { id: "equipo-asesor", nombre: "Asesor", tipo: "texto_corto", placeholder: "Nombre del asesor", obligatorio: false },
-    ];
-    return [regla, ...equipoPreset];
+    const auto: PreguntaForm[] = [];
+    const autoNames = new Set<string>();
+    if (modo === "individual") {
+      (participantes.camposPorPerfil["participante"] ?? []).forEach((c) => { const p = mapCampoToPregunta(c); auto.push(p); autoNames.add(p.nombre); });
+      if (participantes.seleccion.asesor) {
+        auto.push({ id: "auto-asesor", nombre: "Asesor", tipo: "texto_corto", tipoLabel: "Asesor", placeholder: "sección de registro", obligatorio: true, source: "participantes", locked: true });
+        autoNames.add("Asesor");
+      }
+    } else {
+      auto.push({ id: "auto-equipo-nombre", nombre: "Nombre del Equipo", tipo: "texto_corto", tipoLabel: "Equipo", placeholder: "ej. Astros", obligatorio: true, source: "participantes", locked: true });
+      // Lider de equipo y asesor según selección
+      if (participantes.seleccion.lider_equipo) {
+        auto.push({ id: "auto-lider", nombre: "Líder de Equipo", tipo: "texto_corto", tipoLabel: "Líder de Equipo", placeholder: "sección de registro", obligatorio: true, source: "participantes", locked: true });
+        autoNames.add("Líder de Equipo");
+      }
+      if (participantes.seleccion.asesor) {
+        auto.push({ id: "auto-asesor", nombre: "Asesor", tipo: "texto_corto", tipoLabel: "Asesor", placeholder: "sección de registro", obligatorio: true, source: "participantes", locked: true });
+        autoNames.add("Asesor");
+      }
+      const max = parseInt(participantes.maxIntegrantes || "0", 10);
+      const min = parseInt(participantes.minIntegrantes || "0", 10);
+      for (let i = 1; i <= max; i++) {
+        auto.push({ id: `auto-int-${i}`, nombre: `Integrante ${i}`, tipo: "texto_corto", tipoLabel: "Integrante", placeholder: "sección de registro", obligatorio: i <= min, source: "participantes", locked: true });
+      }
+    }
+    const manual = preguntas.filter((p) => !autoNames.has(p.nombre));
+    return [...auto, ...manual];
   };
 
   return (
@@ -119,13 +141,7 @@ const SeccionFormulario: FC = () => {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-10 pb-6">
         <div className="mb-3 rounded-xl bg-[#F7F7FF] border border-[#E0DDFB] px-4 py-3">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setModo("individual")} className={`px-3 py-1 rounded-full text-xs border ${modo === "individual" ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]" : "bg-white border-slate-300 text-slate-700"}`}>Individual</button>
-            <button type="button" onClick={() => setModo("equipos")} className={`px-3 py-1 rounded-full text-xs border ${modo === "equipos" ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]" : "bg-white border-slate-300 text-slate-700"}`}>Equipos</button>
-          </div>
-          <p className="text-[11px] text-slate-600">En equipos, la cantidad mínima de integrantes es obligatoria; los demás campos son opcionales.</p>
-        </div>
+          <p className="text-[11px] text-slate-600">El modo de registro (<span className="font-semibold">{modo === "individual" ? "Individual" : "Equipos"}</span>) y los campos obligatorios vienen de la sección Participantes. No es editable aquí.</p>
         </div>
 
         <div className="rounded-2xl border border-[#E0DDFB] bg-white p-0 overflow-hidden">
@@ -147,19 +163,23 @@ const SeccionFormulario: FC = () => {
               {preguntasConReglas().map((p) => (
                 <tr key={p.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-800">{p.nombre}</td>
-                  <td className="px-4 py-2 text-slate-700">{labelTipo(p.tipo)}</td>
+                  <td className="px-4 py-2 text-slate-700">{p.tipoLabel ?? labelTipo(p.tipo)}</td>
                   <td className="px-4 py-2 text-slate-500">{p.placeholder ?? ""}</td>
                   <td className="px-4 py-2 text-slate-700">{p.obligatorio ? "Sí" : "No"}</td>
                   <td className="px-2 py-2 text-right">
-                    <div className="relative inline-block">
-                      <button type="button" onClick={() => setMenuAbiertoId(menuAbiertoId === p.id ? undefined : p.id)} className="h-8 w-8 rounded-full hover:bg-slate-100 flex items-center justify-center"><FiMoreVertical /></button>
-                      {menuAbiertoId === p.id && (
-                        <div className="absolute right-0 mt-2 w-28 bg-white border border-slate-200 rounded-xl shadow-md text-xs">
-                          <button type="button" onClick={() => { setMenuAbiertoId(undefined); abrirEditar(p); }} className="block w-full text-left px-3 py-2 hover:bg-slate-50">Editar</button>
-                          <button type="button" onClick={() => { setMenuAbiertoId(undefined); manejarEliminar(p.id); }} className="block w-full text-left px-3 py-2 hover:bg-slate-50">Eliminar</button>
-                        </div>
-                      )}
-                    </div>
+                    {p.locked ? (
+                      <span className="inline-block px-2 py-1 rounded-full text-[10px] bg-[#F2F3FB] text-slate-500">Bloqueado</span>
+                    ) : (
+                      <div className="relative inline-block">
+                        <button type="button" onClick={() => setMenuAbiertoId(menuAbiertoId === p.id ? undefined : p.id)} className="h-8 w-8 rounded-full hover:bg-slate-100 flex items-center justify-center"><FiMoreVertical /></button>
+                        {menuAbiertoId === p.id && (
+                          <div className="absolute right-0 mt-2 w-28 bg-white border border-slate-200 rounded-xl shadow-md text-xs">
+                            <button type="button" onClick={() => { setMenuAbiertoId(undefined); abrirEditar(p); }} className="block w-full text-left px-3 py-2 hover:bg-slate-50">Editar</button>
+                            <button type="button" onClick={() => { setMenuAbiertoId(undefined); manejarEliminar(p.id); }} className="block w-full text-left px-3 py-2 hover:bg-slate-50">Eliminar</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
