@@ -2,6 +2,7 @@
 // Notas: encapsula campos básicos y navega al siguiente paso usando rutas.
 import type { FC } from "react";
 import { useNavigate } from "react-router-dom";
+import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 
 const SeccionInformacionEvento: FC = () => {
   const navigate = useNavigate();
@@ -46,11 +47,7 @@ const SeccionInformacionEvento: FC = () => {
         <textarea rows={4} placeholder="Descripción del evento e información general." className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] resize-none focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
       </div>
       </div>
-      {/* Footer con indicador de paso y navegación */}
-      <div className="px-10 flex items-center justify-between pt-4 border-t border-slate-100">
-        <span className="text-xs text-slate-400">Paso <span className="font-semibold text-slate-600">1</span> de <span className="font-semibold text-slate-600">5</span></span>
-        <button type="button" onClick={() => navigate("../personal")} className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Siguiente</button>
-      </div>
+      <FooterAdminEventos onNext={() => navigate("../personal")} step={{ current: 1, total: 5 }} />
     </section>
   );
 };

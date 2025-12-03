@@ -3,6 +3,7 @@
 // opciones de QR, costo de inscripción y tiempos de asistencia.
 import type { FC, Dispatch, SetStateAction } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import { useState } from "react";
 import { FiClock } from "react-icons/fi";
 import ModalTiempoEvento from "./ModalTiempoEvento";
@@ -142,12 +143,7 @@ const SeccionAjusteEvento: FC = () => {
           </div>
         </div>
       </div>
-      {/* Footer con navegación del wizard */}
-      <div className="px-10 flex items-center justify-between pt-4 border-t border-slate-100">
-        <button type="button" onClick={() => navigate("../integrantes")} className="px-8 py-2.5 rounded-full bg-white text-slate-700 text-sm font-semibold shadow-sm border border-slate-200">Volver</button>
-        <span className="text-xs text-slate-400">Paso <span className="font-semibold text-slate-600">4</span> de <span className="font-semibold text-slate-600">5</span></span>
-        <button type="button" onClick={() => navigate("../formulario")} className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Siguiente</button>
-      </div>
+      <FooterAdminEventos onBack={() => navigate("../integrantes")} onNext={() => navigate("../formulario")} step={{ current: 4, total: 5 }} />
 
       {/* Modal de tiempos */}
       <ModalTiempoEvento

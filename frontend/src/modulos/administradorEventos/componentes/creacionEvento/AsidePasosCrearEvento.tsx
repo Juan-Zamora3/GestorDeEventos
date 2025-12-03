@@ -22,18 +22,30 @@ const AsidePasosCrearEvento: FC<Props> = ({ pasoActual }) => {
       <h2 className="text-2xl font-semibold text-slate-900 mb-10">Crear Evento</h2>
       <ol className="space-y-6 text-sm">
         {pasos.map((p, idx) => {
-          const activo = p.id === pasoActual;
+          const estado = p.id < pasoActual ? "done" : p.id === pasoActual ? "current" : "todo";
+          const seleccionado = estado !== "todo";
+          const esPrevio = p.id === pasoActual - 1;
+          const esActual = p.id === pasoActual;
           const ultimo = idx === pasos.length - 1;
           return (
             <li key={p.id} className="flex items-start gap-3">
               <div className="flex flex-col items-center pt-1">
-                {/* Badge del número de paso con estado activo/inactivo */}
-                <div className={`h-8 w-8 rounded-2xl flex items-center justify-center text-sm font-semibold ${activo ? "bg-[#5B4AE5] text-white shadow-md" : "bg-white text-slate-400 border border-[#E0DDFB]"}`}>{p.id}</div>
-                {!ultimo && (<div className={`w-[2px] flex-1 mt-1 ${activo ? "bg-[#D4D0F7]" : "bg-[#E5E4FA]"}`} />)}
+                <div className={`h-8 w-8 rounded-2xl flex items-center justify-center text-sm font-semibold transition-all duration-200 ease-out ${seleccionado ? "bg-[#5B4AE5] text-white shadow-md" : "bg-white text-slate-400 border border-[#E0DDFB]"} ${esActual ? "scale-105 ring-1 ring-[#8B7BED]/40" : "scale-100"}`}>{p.id}</div>
+                {!ultimo && (
+                  <div className="relative w-[2px] h-10 mt-1 rounded-full bg-[#E5E4FA] overflow-hidden">
+                    <span
+                      className={`absolute left-0 top-0 w-full rounded-full transition-all duration-300 ease-out ${estado === "done" ? "bg-[#5B4AE5]" : estado === "current" ? "bg-[#8B7BED]" : "bg-transparent"}`}
+                      style={{
+                        height: estado === "done" ? "100%" : estado === "current" ? "50%" : "0%",
+                        transitionDelay: esPrevio ? "0ms" : esActual ? "160ms" : "0ms",
+                        transitionDuration: esPrevio ? "240ms" : esActual ? "260ms" : "240ms",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               <div>
-                {/* Título y descripción del paso */}
-                <p className={`text-xs font-semibold uppercase tracking-[0.15em] ${activo ? "text-[#5B4AE5]" : "text-slate-600"}`}>{p.titulo}</p>
+                <p className={`text-xs font-semibold uppercase tracking-[0.15em] transition-colors duration-200 ${seleccionado ? "text-[#5B4AE5]" : "text-slate-600"}`}>{p.titulo}</p>
                 <p className="text-xs text-slate-400 mt-1 max-w-[170px]">{p.descripcion}</p>
               </div>
             </li>

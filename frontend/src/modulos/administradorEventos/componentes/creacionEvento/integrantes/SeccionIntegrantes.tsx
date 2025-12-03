@@ -9,6 +9,7 @@ import ModalCampoEvento from "../ModalCampoEvento";
 import ModalCategoriaIntegrantes from "./ModalCategoriaIntegrantes";
 import { FiUser, FiUsers } from "react-icons/fi";
 import type { Categoria } from "./ModalCategoriaIntegrantes";
+import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 
 const SeccionIntegrantes: FC = () => {
   const navigate = useNavigate();
@@ -274,12 +275,7 @@ const SeccionIntegrantes: FC = () => {
         </div>
         </div>
       </div>
-      {/* Footer con navegación del wizard */}
-      <div className="px-10 flex items-center justify-between pt-4 border-t border-slate-100">
-        <button type="button" onClick={() => navigate("../personal")} className="px-8 py-2.5 rounded-full bg-white text-slate-700 text-sm font-semibold shadow-sm border border-slate-200">Volver</button>
-        <span className="text-xs text-slate-400">Paso <span className="font-semibold text-slate-600">3</span> de <span className="font-semibold text-slate-600">5</span></span>
-        <button type="button" onClick={() => navigate("../ajuste")} className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Siguiente</button>
-      </div>
+      <FooterAdminEventos onBack={() => navigate("../personal")} onNext={() => navigate("../ajuste")} step={{ current: 3, total: 5 }} />
 
       {/* Modales */}
       <ModalCampoEvento key={`${modalCampoModo}-${campoEditando?.id ?? 'nuevo'}`} abierto={modalCampoAbierto} modo={modalCampoModo} campo={campoEditando} onGuardar={manejarGuardarCampo} onEliminar={manejarEliminarCampo} onCerrar={cerrarModalCampo} />

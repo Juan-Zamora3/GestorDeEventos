@@ -2,6 +2,7 @@
 // Placeholder para definición de formularios de inscripción/asistencia.
 import type { FC } from "react";
 import { useNavigate } from "react-router-dom";
+import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import { useState } from "react";
 import ModalPreguntaFormulario from "./ModalPreguntaFormulario";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
@@ -168,11 +169,7 @@ const SeccionFormulario: FC = () => {
         </div>
       </div>
 
-      <div className="px-10 flex items-center justify-between pt-4 border-t border-slate-100">
-        <button type="button" onClick={() => navigate("../ajuste")} className="px-8 py-2.5 rounded-full bg-white text-slate-700 text-sm font-semibold shadow-sm border border-slate-200">Volver</button>
-        <span className="text-xs text-slate-400">Paso <span className="font-semibold text-slate-600">5</span> de <span className="font-semibold text-slate-600">5</span></span>
-        <button type="button" className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Finalizar</button>
-      </div>
+      <FooterAdminEventos onBack={() => navigate("../ajuste")} step={{ current: 5, total: 5 }} nextLabel="Finalizar" />
 
       <ModalPreguntaFormulario
         abierto={modalAbierto}
