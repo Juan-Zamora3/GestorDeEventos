@@ -8,6 +8,7 @@ interface Props { titulo: string }
 const tabs = [
   { id: "informacion", label: "Información" },
   { id: "equipos", label: "Equipos" },
+  { id: "participantes", label: "Participantes" },
   { id: "personal", label: "Personal" },
   { id: "asistencias", label: "Asistencias" },
   { id: "plantillas", label: "Plantillas" },

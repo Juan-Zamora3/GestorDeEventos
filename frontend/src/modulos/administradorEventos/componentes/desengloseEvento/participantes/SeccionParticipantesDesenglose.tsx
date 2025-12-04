@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FiSearch, FiMoreVertical } from "react-icons/fi";
 import Agregarrapido from "./Agregarrapido";
 
@@ -6,32 +6,22 @@ interface Registro {
   id: string;
   nombre: string;
   codigo: string;
-  pagado: boolean;
-  entrada: boolean;
-  regreso: boolean;
-  entradaEstado: "Registrada" | "Pendiente";
-  regresoEstado: "Registrada" | "Pendiente";
+  telefono: string;
+  correo: string;
+  institucion: string;
 }
 
 const baseDatos: Registro[] = Array.from({ length: 12 }).map((_, i) => ({
   id: `rec-${String(i + 1).padStart(3, "0")}`,
   nombre: "Los Tralalerites",
   codigo: `TEC${String(i + 1).padStart(3, "0")}`,
-  pagado: i % 3 === 0,
-  entrada: i % 4 === 0,
-  regreso: i % 5 === 0,
-  entradaEstado: i % 2 === 0 ? "Registrada" : "Pendiente",
-  regresoEstado: i % 3 === 0 ? "Registrada" : "Pendiente",
+  telefono: "(123) 000-0000",
+  correo: "tralalerites@example.com",
+  institucion: "Instituto Tecnológico Superior",
 }));
 
-const pillClase: Record<"Registrada" | "Pendiente", string> = {
-  Registrada:
-    "inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-600 px-3 py-1 text-xs font-semibold",
-  Pendiente:
-    "inline-flex items-center gap-2 rounded-full bg-slate-100 text-slate-600 px-3 py-1 text-xs font-semibold",
-};
 
-const SeccionAsistenciasDesenglose: React.FC = () => {
+const SeccionParticipantesDesenglose: React.FC = () => {
   const [busqueda, setBusqueda] = useState("");
   const [registros, setRegistros] = useState<Registro[]>(baseDatos);
   const [agregarOpen, setAgregarOpen] = useState(false);
@@ -39,11 +29,9 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ nombre: string } | null>(null);
+  const [draft, setDraft] = useState<{ nombre: string; telefono: string; correo: string; institucion: string } | null>(null);
 
-  useEffect(() => {
-    setMenuOpen(null);
-  }, [busqueda, seleccionMode]);
+  
 
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -53,22 +41,6 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
     );
   }, [busqueda, registros]);
 
-
-  const toggleById = (id: string, campo: keyof Registro) => {
-    setRegistros((prev) => {
-      const idx = prev.findIndex((x) => x.id === id);
-      if (idx === -1) return prev;
-      const next = [...prev];
-      const r = { ...next[idx] };
-      if (typeof r[campo] === "boolean") {
-        (r[campo] as boolean) = !(r[campo] as boolean);
-        if (campo === "entrada") r.entradaEstado = r.entrada ? "Registrada" : "Pendiente";
-        if (campo === "regreso") r.regresoEstado = r.regreso ? "Registrada" : "Pendiente";
-      }
-      next[idx] = r;
-      return next;
-    });
-  };
 
   const toggleSeleccion = (codigo: string) => {
     setSeleccionados((prev) => {
@@ -94,14 +66,26 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
 
   const iniciarEdicion = (r: Registro) => {
     setEditando(r.id);
-    setDraft({ nombre: r.nombre });
+    setDraft({ nombre: r.nombre, telefono: r.telefono, correo: r.correo, institucion: r.institucion });
     setMenuOpen(null);
   };
 
   const guardarEdicion = () => {
     if (!editando || !draft) return;
     const nuevoNombre = draft.nombre.trim();
-    setRegistros((prev) => prev.map((r) => (r.id === editando ? { ...r, nombre: nuevoNombre || r.nombre } : r)));
+    const nuevoTelefono = draft.telefono.trim();
+    const nuevoCorreo = draft.correo.trim();
+    const nuevaInstitucion = draft.institucion.trim();
+    setRegistros((prev) => prev.map((r) => (
+      r.id === editando
+        ? { ...r,
+            nombre: nuevoNombre || r.nombre,
+            telefono: nuevoTelefono || r.telefono,
+            correo: nuevoCorreo || r.correo,
+            institucion: nuevaInstitucion || r.institucion,
+          }
+        : r
+    )));
     setEditando(null);
     setDraft(null);
   };
@@ -166,11 +150,9 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
                   </th>)}
                   <th className="px-4 py-3 text-left">Nombre Completo</th>
                   <th className="px-4 py-3 text-left">Código</th>
-                  <th className="px-4 py-3 text-left">Pagado</th>
-                  <th className="px-4 py-3 text-left">Entrada</th>
-                  <th className="px-4 py-3 text-left">Regreso</th>
-                  <th className="px-4 py-3 text-left">Entrada ↓</th>
-                  <th className="px-4 py-3 text-left">Regreso ↓</th>
+                  <th className="px-4 py-3 text-left">Telefono</th>
+                  <th className="px-4 py-3 text-left">Correo</th>
+                  <th className="px-4 py-3 text-left">Institución</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -191,7 +173,7 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
                       {editando === r.id ? (
                         <input
                           value={(draft?.nombre ?? r.nombre)}
-                          onChange={(e)=> setDraft((d)=> ({ ...(d ?? { nombre: r.nombre }), nombre: e.target.value }))}
+                          onChange={(e)=> setDraft((d)=> ({ ...(d ?? { nombre: r.nombre, telefono: r.telefono, correo: r.correo, institucion: r.institucion }), nombre: e.target.value }))}
                           className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs bg-[#F9FAFF]"
                         />
                       ) : (
@@ -200,25 +182,37 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">{r.codigo}</td>
                     <td className="px-4 py-3">
-                      <input type="checkbox" checked={r.pagado} onChange={()=>toggleById(r.id, "pagado")} className="h-4 w-4 accent-[#5B4AE5]" />
+                      {editando === r.id ? (
+                        <input
+                          value={(draft?.telefono ?? r.telefono)}
+                          onChange={(e)=> setDraft((d)=> ({ ...(d ?? { nombre: r.nombre, telefono: r.telefono, correo: r.correo, institucion: r.institucion }), telefono: e.target.value }))}
+                          className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs bg-[#F9FAFF]"
+                        />
+                      ) : (
+                        r.telefono
+                      )}
                     </td>
                     <td className="px-4 py-3">
-                      <input type="checkbox" checked={r.entrada} onChange={()=>toggleById(r.id, "entrada")} className="h-4 w-4 accent-[#5B4AE5]" />
+                      {editando === r.id ? (
+                        <input
+                          value={(draft?.correo ?? r.correo)}
+                          onChange={(e)=> setDraft((d)=> ({ ...(d ?? { nombre: r.nombre, telefono: r.telefono, correo: r.correo, institucion: r.institucion }), correo: e.target.value }))}
+                          className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs bg-[#F9FAFF]"
+                        />
+                      ) : (
+                        r.correo
+                      )}
                     </td>
                     <td className="px-4 py-3">
-                      <input type="checkbox" checked={r.regreso} onChange={()=>toggleById(r.id, "regreso")} className="h-4 w-4 accent-[#5B4AE5]" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={pillClase[r.entradaEstado]}>
-                        <span className="h-2 w-2 rounded-full bg-current opacity-70" />
-                        {r.entradaEstado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={pillClase[r.regresoEstado]}>
-                        <span className="h-2 w-2 rounded-full bg-current opacity-70" />
-                        {r.regresoEstado}
-                      </span>
+                      {editando === r.id ? (
+                        <input
+                          value={(draft?.institucion ?? r.institucion)}
+                          onChange={(e)=> setDraft((d)=> ({ ...(d ?? { nombre: r.nombre, telefono: r.telefono, correo: r.correo, institucion: r.institucion }), institucion: e.target.value }))}
+                          className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs bg-[#F9FAFF]"
+                        />
+                      ) : (
+                        r.institucion
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {editando === r.id ? (
@@ -279,11 +273,9 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
               id: `rec-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
               nombre: nombreCompleto || "Participante",
               codigo,
-              pagado: false,
-              entrada: false,
-              regreso: false,
-              entradaEstado: "Pendiente",
-              regresoEstado: "Pendiente",
+              telefono: data.telefono || "",
+              correo: data.correo || "",
+              institucion: data.institucion || "",
             };
             setRegistros((prev)=> [nuevoReg, ...prev]);
             setAgregarOpen(false);
@@ -297,5 +289,4 @@ const SeccionAsistenciasDesenglose: React.FC = () => {
 
 
 
-export default SeccionAsistenciasDesenglose;
-
+export default SeccionParticipantesDesenglose;

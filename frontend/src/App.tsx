@@ -25,6 +25,7 @@ import SeccionPersonalDesenglose from "./modulos/administradorEventos/componente
 import SeccionAsistenciasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/asistencias/SeccionAsistenciasDesenglose";
 import SeccionPlantillasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/plantillas/SeccionPlantillasDesenglose";
 import SeccionConstanciasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/constancias/SeccionConstanciasDesenglose";
+import SeccionParticipantesDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/participantes/SeccionParticipantesDesenglose";
 import SeccionFormularioDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/formulario/SeccionFormularioDesenglose";
 import { PaginaGaleriaPlantillasAdminEventos } from "./modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos";
 import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos";
@@ -76,6 +77,7 @@ function App() {
           <Route index element={<SeccionInformacionDesenglose />} />
           <Route path="informacion" element={<SeccionInformacionDesenglose />} />
           <Route path="equipos" element={<SeccionEquiposDesenglose />} />
+          <Route path="participantes" element={<SeccionParticipantesDesenglose />} />
           <Route path="personal" element={<SeccionPersonalDesenglose />} />
           <Route path="asistencias" element={<SeccionAsistenciasDesenglose />} />
           <Route path="plantillas" element={<SeccionPlantillasDesenglose />} />

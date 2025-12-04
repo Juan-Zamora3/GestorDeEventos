@@ -1,0 +1,55 @@
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import TarjetaPlantillaEvento from "./IncioEvento/TarjetaPlantillaEvento";
+import type { PlantillaEvento } from "./tiposAdminEventos";
+
+const plantillas: PlantillaEvento[] = [
+  { id: "blanco",   titulo: "Evento en blanco", imagen: "/EventoBlanco.png" },
+  { id: "concurso", titulo: "Concurso",         imagen: "/Concurso.png" },
+  { id: "foro",     titulo: "Foro",             imagen: "/Foro.png" },
+  { id: "cursos",   titulo: "Cursos",           imagen: "/Cursos.png" },
+  { id: "mas",      titulo: "Más plantillas",   imagen: "/MasPlantillas.png" },
+];
+
+interface Props {
+  size?: "normal" | "large";
+  onMasClick?: () => void;
+}
+
+const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal", onMasClick }) => {
+  const navigate = useNavigate();
+
+  const manejarClickPlantilla = (id: string) => {
+    if (id === "mas") {
+      // 👉 Mostrar galería embebida si se provee callback; si no, navegar
+      if (onMasClick) {
+        onMasClick();
+      } else {
+        navigate("/admin-eventos/plantillas");
+      }
+    } else {
+      // 👉 Ir al wizard de creación de evento
+      //    (puedes leer `location.state.plantillaId` en la página de crear)
+      navigate("/admin-eventos/crear/informacion", {
+        state: { plantillaId: id },
+      });
+    }
+  };
+
+  return (
+    <div className="w-full overflow-x-auto snap-x snap-mandatory">
+      <div className="min-w-max flex items-center justify-space-between gap-8">
+        {plantillas.map((plantilla) => (
+          <TarjetaPlantillaEvento
+            key={plantilla.id}
+            plantilla={plantilla}
+            size={size}
+            onClick={() => manejarClickPlantilla(plantilla.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default FilaPlantillasRapidas;
