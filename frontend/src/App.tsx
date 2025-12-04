@@ -33,6 +33,7 @@ import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/p
 import LayoutAdminAsistencias from "./modulos/administradorAsistencias/paginas/LayoutAdminAsistencias";
 import PaginaListaEventosAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaListaEventosAdminAsistencias";
 import PaginaDetalleEventoAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaDetalleEventoAdminAsistencias";
+import PaginaFormularioEventoPublico from "./modulos/administradorEventos/paginas/PaginaFormularioEventoPublico";
 
 function App() {
   return (
@@ -90,6 +91,9 @@ function App() {
         <Route path="eventos" element={<PaginaListaEventosAdminAsistencias />} />
         <Route path="eventos/:id" element={<PaginaDetalleEventoAdminAsistencias />} />
       </Route>
+
+      <Route path="/formulario/preview/:id" element={<PaginaFormularioEventoPublico interactive />} />
+      <Route path="/formulario/:id" element={<PaginaFormularioEventoPublico interactive />} />
 
       {/* RUTA DESCONOCIDA → LOGIN */}
       <Route path="*" element={<Navigate to="/" replace />} />
