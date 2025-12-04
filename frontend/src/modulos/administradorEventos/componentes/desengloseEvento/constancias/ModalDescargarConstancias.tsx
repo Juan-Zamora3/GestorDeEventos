@@ -22,8 +22,8 @@ const ModalDescargarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) 
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
-      <div className="w-[820px] max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <div className="px-8 py-6">
+      <div className="w-[900px] h-[60vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="px-8 py-6 flex-1 overflow-auto">
           <h2 className="text-lg font-semibold text-slate-900">Descargar</h2>
           <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -57,4 +57,3 @@ const ModalDescargarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) 
 };
 
 export default ModalDescargarConstancias;
-
