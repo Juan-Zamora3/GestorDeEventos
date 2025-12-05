@@ -64,7 +64,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
 
         {/* Buscador centrado como píldora */}
         <div className="mb-10 flex justify-start">
-          <div className="w-[430px] bg.white rounded-full px-5 py-2.5 flex items-center gap-3 text-slate-700 shadow-sm">
+          <div className="w-[430px] bg-white rounded-full px-5 py-2.5 flex items-center gap-3 text-slate-700 shadow-sm">
             <FiSearch className="text-slate-400 text-lg" />
             <input
               type="text"

@@ -11,8 +11,8 @@ interface Props {
 const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "normal" }) => {
   const sizeClasses =
     size === "large"
-      ? "w-[234px] h-[162px]"
-      : "w-[207px] h-[135px]";
+      ? "w-[250px] aspect-[6/4]"
+      : "w-[250px] aspect-[6/4]";
 
   return (
     <button
@@ -20,10 +20,10 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
       onClick={onClick}
       className={`
         ${sizeClasses}
-        rounded-[28px]
+        rounded-xl
         overflow-hidden
         bg-white
-        border-[3px] border-white
+        ring-2 ring-white
         transition
         relative flex
         snap-start
@@ -33,7 +33,7 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
       <img
         src={plantilla.imagen}
         alt={plantilla.titulo}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover block"
       />
       <div className="absolute top-2 left-2 right-2 flex">
         <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/85 text-slate-800 text-[12px] font-semibold shadow-sm">
