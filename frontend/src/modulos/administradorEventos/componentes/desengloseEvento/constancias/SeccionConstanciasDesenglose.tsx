@@ -1,7 +1,6 @@
 import type { FC } from "react";
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { FiChevronRight, FiDownload, FiPrinter, FiEye } from "react-icons/fi";
+import { FiChevronRight, FiDownload, FiPrinter, FiEye, FiSend, FiClock } from "react-icons/fi";
 import ModalDescargarConstancias from "./ModalDescargarConstancias";
 import ModalEnviarConstancias from "./ModalEnviarConstancias";
 import HistorialEnvioCorreos from "./HistorialEnvioCorreos";
@@ -17,7 +16,6 @@ const categorias: Categoria[] = [
 
 const SeccionConstanciasDesenglose: FC = () => {
   const [catId, setCatId] = useState<string>(categorias[0].id);
-  const [slideDir, setSlideDir] = useState<number>(0);
   const [seleccionPorCat, setSeleccionPorCat] = useState<Record<string, Set<string>>>(() => {
     const s: Record<string, Set<string>> = {};
     categorias.forEach(c => { s[c.id] = new Set(c.personas.map(p=>p.id)); });
@@ -33,21 +31,6 @@ const SeccionConstanciasDesenglose: FC = () => {
   const seleccionados = actual.personas.filter(p=> seleccionIds.has(p.id));
   const total = seleccionados.length;
   const personaActual = seleccionados[index] ?? seleccionados[0];
-
-  const setCategoria = (id: string) => {
-    const from = categorias.findIndex((c) => c.id === catId);
-    const to = categorias.findIndex((c) => c.id === id);
-    setSlideDir(to > from ? 1 : -1);
-    setCatId(id);
-    setIndex(0);
-  };
-  const siguienteCategoria = () => {
-    const cur = categorias.findIndex((c) => c.id === catId);
-    const next = (cur + 1) % categorias.length;
-    setSlideDir(1);
-    setCatId(categorias[next].id);
-    setIndex(0);
-  };
 
   const togglePersona = (id: string) => {
     setSeleccionPorCat(prev => {
@@ -100,21 +83,20 @@ const SeccionConstanciasDesenglose: FC = () => {
               <button
                 key={c.id}
                 type="button"
-                onClick={()=> setCategoria(c.id)}
+                onClick={()=>{ setCatId(c.id); setIndex(0); }}
                 className={`px-5 py-2.5 rounded-full text-sm font-semibold transform-gpu transition ${active?"bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]":"bg-[#F2F3FB] text-slate-700 shadow-sm hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"}`}
               >
                 {c.titulo}
               </button>
             );
           })}
-          <button
-            type="button"
-            onClick={siguienteCategoria}
-            className="h-9 w-9 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center ml-1 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"
-            aria-label="Siguiente categoría"
-          >
-            <FiChevronRight />
-          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={imprimir} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiPrinter /> Imprimir</button>
+          <button type="button" onClick={ver} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiEye /> Ver</button>
+          <button type="button" onClick={()=> setOpenHistorial(true)} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiClock /> Historial</button>
+          <button type="button" onClick={()=> setOpenEnviar(true)} className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"><FiSend /> Enviar</button>
+          <button type="button" onClick={()=> setOpenDescargar(true)} className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"><FiDownload /> Descargar</button>
         </div>
       </div>
 
@@ -124,48 +106,22 @@ const SeccionConstanciasDesenglose: FC = () => {
             <p className="text-xs font-semibold text-slate-700">{actual.titulo}</p>
             <button type="button" onClick={seleccionarTodo} className="text-[11px] font-semibold text-[#356BFF]">Seleccionar todo</button>
           </div>
-          <div className="relative max-h-[540px] overflow-hidden">
-            <AnimatePresence initial={false} custom={slideDir}>
-              <motion.div
-                key={catId}
-                custom={slideDir}
-                initial={{ x: slideDir >= 0 ? 40 : -40, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: slideDir >= 0 ? -40 : 40, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 360, damping: 28 }}
-                className="space-y-1 overflow-auto pr-1"
-                style={{ maxHeight: 540 }}
-              >
-                {actual.personas.map((p) => {
-                  const checked = seleccionIds.has(p.id);
-                  return (
-                    <label
-                      key={p.id}
-                      className={`flex items-center gap-2 px-2 py-1 rounded-lg ${checked ? "bg-[#EFF0FF]" : "hover:bg-slate-50"}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => togglePersona(p.id)}
-                        className="h-4 w-4 accent-[#5B4AE5]"
-                      />
-                      <span className="text-xs text-slate-800">{p.nombre}</span>
-                    </label>
-                  );
-                })}
-              </motion.div>
-            </AnimatePresence>
+          <div className="space-y-1 max-h-[540px] overflow-auto">
+            {actual.personas.map(p => {
+              const checked = seleccionIds.has(p.id);
+              return (
+                <label key={p.id} className={`flex items-center gap-2 px-2 py-1 rounded-lg ${checked?"bg-[#EFF0FF]":"hover:bg-slate-50"}`}>
+                  <input type="checkbox" checked={checked} onChange={()=>togglePersona(p.id)} className="h-4 w-4 accent-[#5B4AE5]" />
+                  <span className="text-xs text-slate-800">{p.nombre}</span>
+                </label>
+              );
+            })}
           </div>
         </aside>
 
         <main className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-slate-900">Previsualización</p>
-            <div className="inline-flex items-center gap-2">
-              <button type="button" onClick={imprimir} className="h-8 px-3 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-1 shadow-sm"> <FiPrinter /> Imprimir</button>
-              <button type="button" onClick={ver} className="h-8 px-3 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700 inline-flex items-center gap-1 shadow-sm"> <FiEye /> Ver</button>
-              <button type="button" onClick={()=> setOpenDescargar(true)} className="h-8 px-3 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white inline-flex items-center gap-1 shadow-sm"> <FiDownload /> Descargar</button>
-            </div>
           </div>
           <div className="flex items-center justify-center">
             <div className="relative w-[680px] h-[480px] bg-[#F9FAFF] rounded-xl border border-slate-200 flex items-center justify-center">
@@ -211,3 +167,4 @@ const SeccionConstanciasDesenglose: FC = () => {
 };
 
 export default SeccionConstanciasDesenglose;
+

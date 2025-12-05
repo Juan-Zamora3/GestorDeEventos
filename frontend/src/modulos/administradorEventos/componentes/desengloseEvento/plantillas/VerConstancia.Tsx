@@ -33,7 +33,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [texto, setTexto] = useState<string>("");
 
-  // Limpia el blob anterior cuando cambias de archivo o cierras
+  // Limpia blobs cuando cambias o cierras
   useEffect(() => {
     return () => {
       if (archivoUrl && archivoUrl.startsWith("blob:")) {
@@ -42,10 +42,13 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     };
   }, [archivoUrl]);
 
+  // --- utilidades para variables/chips ---
+
   const serialize = () => {
     const root = contentRef.current;
     if (!root) return "";
     const pieces: string[] = [];
+
     const walk = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         pieces.push(node.textContent ?? "");
@@ -60,6 +63,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
         el.childNodes.forEach(walk);
       }
     };
+
     root.childNodes.forEach(walk);
     return pieces.join("");
   };
@@ -172,10 +176,11 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     onGuardar({ titulo: formNombre, tipo: formTipo });
   };
 
-  // Fuente para el PDF con visor (si no hay archivo, usa el default del proyecto)
+  // --- PDF y estilos para vista previa ----
+
+  // Usa siempre algo válido: blob del input o Hackatec2 del public
   const pdfSrc = `${archivoUrl ?? "/Hackatec2.pdf"}#page=1&zoom=page-width&toolbar=1&navpanes=0`;
 
-  // Estilos del texto que se dibuja SOBRE el PDF
   const previewTextStyle: CSSProperties = {
     fontFamily: varTipografia,
     fontSize: `${varTam}px`,
@@ -199,10 +204,10 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
       onDragOverCapture={guardDropOutsideEditor}
       onDropCapture={guardDropOutsideEditor}
     >
-      {/* Modal fijo: no crece, solo hace scroll interno */}
+      {/* Modal fijo: NO crece, solo hace scroll interno */}
       <div className="w-[1400px] max-w-[96vw] h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <header className="px-8 py-5 bg-gradient-to-r from-[#3A62D6] to-[#5B4AE5] text-white flex items-center justify-between flex-none">
-          <h2 className="text-lg font-semibold">Configuración De Constancia</h2>
+          <h2 className="text-lg font-semibold">Configuración De Constancias</h2>
           <button
             type="button"
             onClick={onClose}
@@ -338,26 +343,24 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
             </div>
           </div>
 
-          {/* CENTRO: vista previa PDF + texto encima */}
+          {/* CENTRO: vista previa simple del PDF + texto encima */}
           <div className="flex-1 h-full overflow-y-auto min-w-0">
-            <div className="border rounded-xl overflow-hidden flex items-center justify-center bg-[#F9FAFF] h-[760px] p-4">
-              <div className="relative w-full max-w-[680px] aspect-[210/297] overflow-hidden rounded-xl ring-1 ring-slate-300 bg-white">
-                <>
-                  <iframe
-                    src={pdfSrc}
-                    title="Vista previa PDF"
-                    className="absolute inset-0 w-full h-full"
-                  />
-                  {/* Texto pintado arriba del PDF, sin afectar layout */}
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-16">
-                    <p
-                      style={previewTextStyle}
-                      className="max-h-[80%] overflow-hidden"
-                    >
-                      {texto || "Aquí aparecerá el texto de la constancia."}
-                    </p>
-                  </div>
-                </>
+            <div className="border rounded-xl bg-[#F9FAFF] h-full flex items-center justify-center p-4">
+              <div className="relative w-full max-w-[700px] h-[90%] rounded-xl bg-white shadow">
+                <iframe
+                  src={pdfSrc}
+                  title="Vista previa PDF"
+                  className="absolute inset-0 w-full h-full rounded-xl"
+                />
+                {/* Texto encima del PDF, sin afectar layout */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-16">
+                  <p
+                    style={previewTextStyle}
+                    className="max-h-[80%] overflow-hidden"
+                  >
+                    {texto || "Aquí aparecerá el texto de la constancia."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
