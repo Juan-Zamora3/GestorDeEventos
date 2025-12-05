@@ -12,14 +12,23 @@ interface Props {
 }
 
 const variables = ["Nombre", "Fecha", "Mensaje", "Equipo", "Concurso", "Añadir"];
+const templates: Record<"Correo" | "WhatsApp", { asunto?: string; mensaje: string }> = {
+  Correo: {
+    asunto: "Constancia de participación en {Concurso}",
+    mensaje:
+      "Hola {Nombre}, adjuntamos tu constancia por participación en {Concurso}. Fecha: {Fecha}.",
+  },
+  WhatsApp: {
+    mensaje:
+      "Hola {Nombre}, te compartimos tu constancia del evento {Concurso}. Fecha: {Fecha}.",
+  },
+};
 
 const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => {
   const [canal, setCanal] = useState<"Correo" | "WhatsApp">("Correo");
   const [asunto, setAsunto] = useState("Entrega de constancias");
   const [mensaje, setMensaje] = useState("Adjuntamos su constancia del evento.");
   const editorRef = useRef<HTMLDivElement | null>(null);
-
-  if (!abierto) return null;
 
   const serialize = () => {
     const root = editorRef.current;
@@ -92,6 +101,25 @@ const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => 
     sel?.addRange(range);
   };
 
+  const renderToEditor = (text: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.innerHTML = "";
+    const regex = /\{([^}]+)\}/g;
+    let lastIndex = 0;
+    for (;;) {
+      const m = regex.exec(text);
+      if (!m) break;
+      const plain = text.slice(lastIndex, m.index);
+      if (plain) el.append(document.createTextNode(plain));
+      const chip = makeChip(m[1]);
+      el.append(chip);
+      lastIndex = regex.lastIndex;
+    }
+    const tail = text.slice(lastIndex);
+    if (tail) el.append(document.createTextNode(tail));
+  };
+
   const insertVariable = (v: string) => {
     focusEditableEnd();
     const chip = makeChip(v);
@@ -129,6 +157,16 @@ const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => 
     }
   };
 
+  const cambiarCanal = (c: "Correo" | "WhatsApp") => {
+    setCanal(c);
+    const t = templates[c];
+    if (t.asunto !== undefined) setAsunto(t.asunto);
+    setMensaje(t.mensaje);
+    renderToEditor(t.mensaje);
+  };
+
+  if (!abierto) return null;
+
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/30"
@@ -136,21 +174,25 @@ const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => 
       onDropCapture={(e)=> guardDropOutsideEditor(e)}
     >
       <div className="w-[900px] h-[70vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-        <div className="px-8 py-6 flex-1 overflow-auto">
-          <h2 className="text-lg font-semibold text-slate-900">Envio</h2>
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-slate-700 mb-1">Canal</p>
-              <div className="inline-flex rounded-full bg-[#F2F3FB] p-1">
+        <div className="bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] px-8 py-4">
+          <div className="flex items-center justify-between">
+            <p className="text-white text-sm font-semibold">Enviar constancias</p>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full bg-white/20 p-1">
                 {["Correo","WhatsApp"].map((c)=>{
                   const active = canal===c;
                   return (
-                    <button key={c} type="button" onClick={()=>setCanal(c as "Correo" | "WhatsApp")} className={`px-4 py-1.5 rounded-full text-xs font-semibold ${active?"bg-white text-slate-800":"text-slate-700"}`}>{c}</button>
+                    <button key={c} type="button" onClick={()=>cambiarCanal(c as "Correo" | "WhatsApp")} className={`px-4 py-1.5 rounded-full text-xs font-semibold ${active?"bg-white text-slate-800":"text-white"}`}>{c}</button>
                   );
                 })}
               </div>
+              <button type="button" onClick={()=> { const t = templates[canal]; if (t.asunto !== undefined) setAsunto(t.asunto); setMensaje(t.mensaje); renderToEditor(t.mensaje); }} className="px-4 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold">
+                Usar plantilla
+              </button>
             </div>
           </div>
+        </div>
+        <div className="px-8 py-6 flex-1 overflow-auto">
           {canal === "Correo" && (
             <div className="mt-4">
               <p className="text-xs font-semibold text-slate-700 mb-1">Configuración de correo</p>
@@ -181,7 +223,6 @@ const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => 
                   <div
                     ref={editorRef}
                     contentEditable
-                    data-value={mensaje}
                     onInput={()=> setMensaje(serialize())}
                     onDragOver={(e)=> { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
                     onDrop={handleDrop}
@@ -218,7 +259,6 @@ const ModalEnviarConstancias: FC<Props> = ({ abierto, onCerrar, onAceptar }) => 
               <div
                 ref={editorRef}
                 contentEditable
-                data-value={mensaje}
                 onInput={()=> setMensaje(serialize())}
                 onDragOver={(e)=> { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
                 onDrop={handleDrop}

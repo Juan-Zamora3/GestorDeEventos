@@ -13,6 +13,7 @@ import {
 import ModalDescargarConstancias from "./ModalDescargarConstancias";
 import ModalEnviarConstancias from "./ModalEnviarConstancias";
 import HistorialEnvioCorreos from "./HistorialEnvioCorreos";
+import ModalImprimirConstancias from "./ModalImprimirConstancias";
 
 interface Persona { id: string; nombre: string }
 interface Categoria { id: string; titulo: string; personas: Persona[] }
@@ -61,6 +62,7 @@ const SeccionConstanciasDesenglose: FC = () => {
   const [openDescargar, setOpenDescargar] = useState(false);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [openHistorial, setOpenHistorial] = useState(false);
+  const [openImprimir, setOpenImprimir] = useState(false);
 
   const actual = useMemo(
     () => categorias.find((c) => c.id === catId)!,
@@ -171,7 +173,7 @@ const SeccionConstanciasDesenglose: FC = () => {
   };
 
   const imprimir = () => {
-    window.print();
+    setOpenImprimir(true);
   };
 
   return (
@@ -403,6 +405,17 @@ const SeccionConstanciasDesenglose: FC = () => {
             void cfg;
             setOpenDescargar(false);
             descargar();
+          }}
+        />
+      )}
+      {openImprimir && (
+        <ModalImprimirConstancias
+          abierto={openImprimir}
+          categorias={categorias}
+          onCerrar={() => setOpenImprimir(false)}
+          onAceptar={(cfg) => {
+            void cfg;
+            setOpenImprimir(false);
           }}
         />
       )}

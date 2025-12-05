@@ -60,6 +60,14 @@ const SeccionPlantillasDesenglose: FC = () => {
 
   const abrirEdicion = (item: PlantillaItem) => { setEditing(item); };
 
+  const buildPdfSrc = (pdfUrl: string, ctx: "card" | "modal") => {
+  const base = pdfUrl || "/Hackatec2.pdf";
+  const zoom = ctx === "card" ? "page-width" : "page-fit";
+
+  // ctx hace que el navegador lo trate como recurso distinto
+  return `${base}?ctx=${ctx}#page=1&zoom=${zoom}&toolbar=0&navpanes=0`;
+};
+
   return (
     <section className="px-6 sm:px-10 py-6">
       <div className="flex items-center justify-between mb-5 gap-4">
@@ -85,13 +93,23 @@ const SeccionPlantillasDesenglose: FC = () => {
                     <input type="checkbox" checked={isSelected} onChange={(e)=>{ e.stopPropagation(); toggleSelect(p.id); }} className="h-4 w-4 accent-[#5B4AE5]" />
                   </label>
                 </div>
-                <div className="relative w-full aspect-[210/297] overflow-hidden rounded-xl bg-[#F8FAFF] ring-1 ring-slate-300 shadow-[0_1px_6px_rgba(15,23,42,0.08)]">
-                  <iframe
-                    src="/Hackatec2.pdf#page=1&zoom=page-width&toolbar=0&navpanes=0"
-                    className="absolute inset-0 w-[110%] h-[110%] -translate-y-[0px] -translate-x-[4px] scale-[1.0] pointer-events-none"
-                    loading="lazy"
-                  />
-                </div>
+               <div className="h-[220px] w-full bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
+  {(() => {
+    // si ya guardas ahí el PDF, úsalo; si no, queda el Hackatec2 como demo
+    const pdfUrl =
+      p.imagen?.toLowerCase().endsWith(".pdf") ? p.imagen : "/Hackatec2.pdf";
+
+    const pdfSrcCard = buildPdfSrc(pdfUrl, "card");
+
+    return (
+      <iframe
+        title={p.titulo}
+        src={pdfSrcCard}
+        className="w-[110%] h-[260px] pointer-events-none"
+      />
+    );
+  })()}
+</div>
                 <div className="px-3 py-2">
                   <p className="text-[11px] font-semibold text-slate-700">{p.titulo}</p>
                   <p className="text-[10px] text-slate-500">{p.fecha}</p>

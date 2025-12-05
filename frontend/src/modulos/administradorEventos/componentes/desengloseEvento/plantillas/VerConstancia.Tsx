@@ -22,6 +22,12 @@ interface Props {
   onGuardar: (data: { titulo: string; tipo: string }) => void;
 }
 
+/** Construye la URL del PDF para el MODAL (ctx=modal evita que comparta zoom con los cards) */
+const buildPdfSrc = (pdfUrl?: string) => {
+  const base = pdfUrl || "/Hackatec2.pdf";
+  return `${base}?ctx=modal#page=1&zoom=page-fit&toolbar=0&navpanes=0`;
+};
+
 const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   const [formNombre, setFormNombre] = useState<string>(item.titulo);
   const [formTipo, setFormTipo] = useState<string>(item.tipo);
@@ -41,7 +47,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
 
   // === POSICIÓN ARRASTRABLE DEL TEXTO EN LA VISTA PREVIA ===
   const previewRef = useRef<HTMLDivElement | null>(null);
-  // porcentaje dentro de la hoja (50,60 = centrado aprox.)
   const [textPos, setTextPos] = useState<{ x: number; y: number }>({
     x: 50,
     y: 60,
@@ -54,7 +59,14 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   } | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  // Limpia blobs cuando cambias o cierras
+  // Sincroniza título/tipo cuando cambias de plantilla o vuelves a abrir el modal
+  useEffect(() => {
+    if (!open) return;
+    setFormNombre(item.titulo);
+    setFormTipo(item.tipo);
+  }, [item, open]);
+
+  // Limpia blob cuando se destruye el componente
   useEffect(() => {
     return () => {
       if (archivoUrl && archivoUrl.startsWith("blob:")) {
@@ -65,57 +77,54 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
 
   // --- utilidades para variables/chips ---
 
- const serialize = () => {
-  const root = contentRef.current;
-  if (!root) return "";
-  const pieces: string[] = [];
+  const serialize = () => {
+    const root = contentRef.current;
+    if (!root) return "";
+    const pieces: string[] = [];
 
-  const walk = (node: Node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      pieces.push(node.textContent ?? "");
-      return;
-    }
-
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as HTMLElement;
-
-      // Chip de variable {Nombre}, {Equipo}, etc.
-      if (el.dataset.var) {
-        pieces.push(`{${el.dataset.var}}`);
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        pieces.push(node.textContent ?? "");
         return;
       }
 
-      // Saltos explícitos <br>
-      if (el.tagName === "BR") {
-        pieces.push("\n");
-        return;
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+
+        // Chip {Nombre}, {Equipo}, etc.
+        if (el.dataset.var) {
+          pieces.push(`{${el.dataset.var}}`);
+          return;
+        }
+
+        // <br>
+        if (el.tagName === "BR") {
+          pieces.push("\n");
+          return;
+        }
+
+        const isBlock =
+          el.tagName === "DIV" ||
+          el.tagName === "P" ||
+          el.tagName === "LI";
+
+        el.childNodes.forEach(walk);
+
+        if (isBlock) {
+          pieces.push("\n");
+        }
       }
+    };
 
-      const isBlock =
-        el.tagName === "DIV" ||
-        el.tagName === "P" ||
-        el.tagName === "LI";
+    root.childNodes.forEach(walk);
 
-      el.childNodes.forEach(walk);
+    const raw = pieces.join("");
 
-      // Cuando el navegador mete <div> por cada Enter, forzamos un \n
-      if (isBlock) {
-        pieces.push("\n");
-      }
-    }
+    return raw
+      .replace(/\s+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trimEnd();
   };
-
-  root.childNodes.forEach(walk);
-
-  const raw = pieces.join("");
-
-  // Limpiamos un poco: quitamos espacios antes de \n y evitamos 1000 líneas vacías
-  return raw
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trimEnd();
-};
-
 
   const makeChip = (v: string) => {
     const el = document.createElement("span");
@@ -226,7 +235,8 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   };
 
   // --- PDF y estilos para vista previa ----
-  const pdfSrc = `${archivoUrl ?? "/Hackatec2.pdf"}#page=1&zoom=page-fit&toolbar=0&navpanes=0`;
+  const basePdfUrl = archivoUrl; // en el futuro puedes usar item.imagen si viene un PDF
+  const pdfSrc = buildPdfSrc(basePdfUrl);
 
   const previewTextStyle: CSSProperties = {
     fontFamily: varTipografia,
@@ -276,7 +286,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     let newX = (newXPx / rect.width) * 100;
     let newY = (newYPx / rect.height) * 100;
 
-    // lo limitamos un poco para que no se salga de la hoja
     newX = Math.min(95, Math.max(5, newX));
     newY = Math.min(95, Math.max(5, newY));
 
@@ -469,7 +478,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                 >
                   <p
                     style={previewTextStyle}
-                     className="max-h-[80%] max-w-[100%] overflow-hidden"
+                    className="max-h-[80%] max-w-[100%] overflow-hidden"
                   >
                     {texto || "Aquí aparecerá el texto de la constancia."}
                   </p>
@@ -576,7 +585,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
