@@ -10,9 +10,8 @@ const plantillas: PlantillaEvento[] = [
   { id: "cursos", titulo: "Cursos", imagen: "/Cursos.png" },
   { id: "robotica", titulo: "Robotica", imagen: "/Robotica.png" },
   { id: "hackatec", titulo: "Hackatec", imagen: "/Hackatec.png" },
+  { id: "innovatec", titulo: "Innovatec", imagen: "/Innovatec.png" },
   { id: "estructuras", titulo: "Estructuras", imagen: "/Estructuras.png" },
-  { id: "concurso2", titulo: "Concurso", imagen: "/Concurso.png" },
-  { id: "foro2", titulo: "Foro", imagen: "/Foro.png" },
 ];
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {

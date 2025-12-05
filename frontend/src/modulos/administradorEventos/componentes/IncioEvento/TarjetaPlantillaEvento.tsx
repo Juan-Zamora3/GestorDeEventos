@@ -35,8 +35,8 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
         alt={plantilla.titulo}
         className="w-full h-full object-cover block"
       />
-      <div className="absolute top-2 left-2 right-2 flex">
-        <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/85 text-slate-800 text-[12px] font-semibold shadow-sm">
+      <div className="absolute top-2 left-2 right-2">
+        <span className="text-white text-[24px] font-bold drop-shadow">
           {plantilla.titulo}
         </span>
       </div>

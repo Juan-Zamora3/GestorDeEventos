@@ -129,7 +129,7 @@ const SeccionConstanciasDesenglose: FC = () => {
   // === PLANTILLA PARA PREVIEW / ENVÍO ===
   // Por ahora está fija, cámbiala luego por la URL guardada en BD
   const PLANTILLA_PDF_URL = "/Hackatec2.pdf";
-  const pdfSrc = `${PLANTILLA_PDF_URL}#page=1&zoom=page-width&toolbar=0&navpanes=0`;
+  const pdfSrc = `${PLANTILLA_PDF_URL}?ctx=constancias#page=1&zoom=page-width&toolbar=0&navpanes=0`;
 
 
   // misma idea que antes para generar imagen rápida
