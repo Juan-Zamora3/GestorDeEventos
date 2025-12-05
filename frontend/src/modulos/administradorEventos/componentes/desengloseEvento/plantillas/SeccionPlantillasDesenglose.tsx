@@ -75,24 +75,28 @@ const SeccionPlantillasDesenglose: FC = () => {
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white px-6 py-4">
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid gap-4 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
           {filtrados.map((p) => {
             const isSelected = selected.has(p.id);
             return (
-              <button key={p.id} type="button" onClick={() => abrirEdicion(p)} className="relative bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition text-left">
+              <div key={p.id} onClick={() => abrirEdicion(p)} className="relative bg-white rounded-xl shadow-[0_2px_10px_rgba(15,23,42,0.10)] overflow-hidden hover:shadow-lg transition text-left cursor-pointer">
                 <div className="absolute top-2 left-2 z-10">
-                  <label className="inline-flex items-center gap-2 bg-white/80 px-2 py-1 rounded-full">
+                  <label className="inline-flex items-center gap-2 bg-white/80 px-2 py-1 rounded-full" onClick={(e)=> e.stopPropagation()}>
                     <input type="checkbox" checked={isSelected} onChange={(e)=>{ e.stopPropagation(); toggleSelect(p.id); }} className="h-4 w-4 accent-[#5B4AE5]" />
                   </label>
                 </div>
-                <div className="h-36 w-full overflow-hidden">
-                  <img src={p.imagen} alt={p.titulo} className="w-full h-full object-cover" />
+                <div className="relative w-full aspect-[210/297] overflow-hidden rounded-xl bg-[#F8FAFF] ring-1 ring-slate-300 shadow-[0_1px_6px_rgba(15,23,42,0.08)]">
+                  <iframe
+                    src="/Hackatec2.pdf#page=1&zoom=page-width&toolbar=0&navpanes=0"
+                    className="absolute inset-0 w-[110%] h-[110%] -translate-y-[0px] -translate-x-[4px] scale-[1.0] pointer-events-none"
+                    loading="lazy"
+                  />
                 </div>
                 <div className="px-3 py-2">
                   <p className="text-[11px] font-semibold text-slate-700">{p.titulo}</p>
                   <p className="text-[10px] text-slate-500">{p.fecha}</p>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

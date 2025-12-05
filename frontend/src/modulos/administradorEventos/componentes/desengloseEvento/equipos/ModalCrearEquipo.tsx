@@ -1,10 +1,45 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface Props {
   onClose: () => void;
 }
 
 const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
+  const [equipoNombre, setEquipoNombre] = useState("");
+  const [equipoTelefono, setEquipoTelefono] = useState("");
+  const [equipoInstitucion, setEquipoInstitucion] = useState("");
+  const [equipoCorreo, setEquipoCorreo] = useState("");
+
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoApPaterno, setNuevoApPaterno] = useState("");
+  const [nuevoApMaterno, setNuevoApMaterno] = useState("");
+
+  type Integrante = { nombre: string; apPaterno: string; apMaterno: string; rol: string; institucion: string };
+  const [integrantes, setIntegrantes] = useState<Integrante[]>([
+    { nombre: "Sofía", apPaterno: "González", apMaterno: "Pérez", rol: "Asesor", institucion: "ITSPP" },
+    { nombre: "Santiago", apPaterno: "González", apMaterno: "Pérez", rol: "Líder", institucion: "ITSPP" },
+    { nombre: "Valentina", apPaterno: "González", apMaterno: "Pérez", rol: "Integrante", institucion: "ITSPP" },
+    { nombre: "Sebastián", apPaterno: "González", apMaterno: "Pérez", rol: "Integrante", institucion: "ITSPP" },
+    { nombre: "Isabella", apPaterno: "González", apMaterno: "Pérez", rol: "Integrante", institucion: "ITSPP" },
+  ]);
+
+  const agregarIntegrante = () => {
+    const nombre = nuevoNombre.trim();
+    const apP = nuevoApPaterno.trim();
+    const apM = nuevoApMaterno.trim();
+    if (!nombre) return;
+    setIntegrantes((prev)=> [
+      { nombre, apPaterno: apP, apMaterno: apM, rol: "Integrante", institucion: equipoInstitucion || "ITSPP" },
+      ...prev,
+    ]);
+    setNuevoNombre("");
+    setNuevoApPaterno("");
+    setNuevoApMaterno("");
+  };
+
+  const eliminarIntegrante = (idx: number) => {
+    setIntegrantes((prev)=> prev.filter((_, i)=> i !== idx));
+  };
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
       <div className="w-[950px] max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
@@ -23,19 +58,19 @@ const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre del equipo</label>
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Los Astros" />
+              <input value={equipoNombre} onChange={(e)=>setEquipoNombre(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Los Astros" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Teléfono</label>
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. (638) 000-0000" />
+              <input value={equipoTelefono} onChange={(e)=>setEquipoTelefono(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. (638) 000-0000" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Institución</label>
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Instituto Tecnológico Superior de Puerto Peñasco" />
+              <input value={equipoInstitucion} onChange={(e)=>setEquipoInstitucion(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="Ej. Instituto Tecnológico Superior de Puerto Peñasco" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Correo</label>
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="correo@gmail.com" />
+              <input value={equipoCorreo} onChange={(e)=>setEquipoCorreo(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]" placeholder="correo@gmail.com" />
             </div>
           </div>
 
@@ -46,6 +81,8 @@ const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
                 Nombre
               </label>
               <input
+                value={nuevoNombre}
+                onChange={(e)=>setNuevoNombre(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
                 placeholder="Ej. Sofía"
               />
@@ -55,6 +92,8 @@ const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
                 Apellido Paterno
               </label>
               <input
+                value={nuevoApPaterno}
+                onChange={(e)=>setNuevoApPaterno(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
                 placeholder="Ej. Gonzales"
               />
@@ -64,12 +103,15 @@ const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
                 Apellido materno
               </label>
               <input
+                value={nuevoApMaterno}
+                onChange={(e)=>setNuevoApMaterno(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF]"
                 placeholder="Ej. Perez"
               />
             </div>
             <button
               type="button"
+              onClick={agregarIntegrante}
               className="h-10 rounded-xl bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-lg flex items-center justify-center shadow-sm"
             >
               +
@@ -90,20 +132,18 @@ const ModalCrearEquipo: React.FC<Props> = ({ onClose }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-[11px]">
-                {["Sofía", "Santiago", "Valentina", "Sebastián", "Isabella"].map(
-                  (nombre, i) => (
-                    <tr key={nombre}>
-                      <td className="px-4 py-2">{nombre}</td>
-                      <td className="px-4 py-2">González</td>
-                      <td className="px-4 py-2">Pérez</td>
-                      <td className="px-4 py-2">
-                        {i === 1 ? "Líder" : i === 0 ? "Asesor" : "Integrante"}
-                      </td>
-                      <td className="px-4 py-2">ITSPP</td>
-                      <td className="px-4 py-2 text-right">⋮</td>
-                    </tr>
-                  )
-                )}
+                {integrantes.map((r, idx)=> (
+                  <tr key={`${r.nombre}-${idx}`}>
+                    <td className="px-4 py-2">{r.nombre}</td>
+                    <td className="px-4 py-2">{r.apPaterno}</td>
+                    <td className="px-4 py-2">{r.apMaterno}</td>
+                    <td className="px-4 py-2">{r.rol}</td>
+                    <td className="px-4 py-2">{r.institucion}</td>
+                    <td className="px-4 py-2 text-right">
+                      <button type="button" onClick={()=> eliminarIntegrante(idx)} className="h-8 w-8 rounded-full hover:bg-slate-100 inline-flex items-center justify-center">🗑</button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

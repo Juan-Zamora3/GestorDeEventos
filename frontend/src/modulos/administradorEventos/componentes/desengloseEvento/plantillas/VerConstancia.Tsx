@@ -1,5 +1,5 @@
-import type { FC, DragEvent } from "react";
-import { useRef, useState } from "react";
+import type { FC, DragEvent, CSSProperties } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface PlantillaItem {
   id: string;
@@ -20,6 +20,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   const [formNombre, setFormNombre] = useState<string>(item.titulo);
   const [formTipo, setFormTipo] = useState<string>(item.tipo);
   const [archivoNombre, setArchivoNombre] = useState<string>("");
+  const [archivoUrl, setArchivoUrl] = useState<string | undefined>(undefined);
 
   const [varTipografia, setVarTipografia] = useState<string>("Inter");
   const [varTam, setVarTam] = useState<number>(18);
@@ -31,6 +32,15 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
 
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [texto, setTexto] = useState<string>("");
+
+  // Limpia el blob anterior cuando cambias de archivo o cierras
+  useEffect(() => {
+    return () => {
+      if (archivoUrl && archivoUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(archivoUrl);
+      }
+    };
+  }, [archivoUrl]);
 
   const serialize = () => {
     const root = contentRef.current;
@@ -70,14 +80,33 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     return el;
   };
 
+  const focusEditableEnd = () => {
+    const el = contentRef.current;
+    if (!el) return;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  };
+
   const placeNodeAtCaret = (node: Node) => {
     const sel = window.getSelection();
     const editor = contentRef.current;
     if (!editor) return;
-    const inside = !!sel && sel.rangeCount > 0 && (sel.anchorNode === editor || (sel.anchorNode && editor.contains(sel.anchorNode)));
+
+    const inside =
+      !!sel &&
+      sel.rangeCount > 0 &&
+      (sel.anchorNode === editor ||
+        (sel.anchorNode && editor.contains(sel.anchorNode)));
+
     if (!inside) {
       focusEditableEnd();
     }
+
     const nextSel = window.getSelection();
     if (!nextSel || nextSel.rangeCount === 0) {
       editor.append(node);
@@ -90,18 +119,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     range.collapse(true);
     nextSel.removeAllRanges();
     nextSel.addRange(range);
-  };
-
-  const focusEditableEnd = () => {
-    const el = contentRef.current;
-    if (!el) return;
-    el.focus();
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
   };
 
   const insertVariable = (v: string) => {
@@ -155,13 +172,34 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     onGuardar({ titulo: formNombre, tipo: formTipo });
   };
 
+  // Fuente para el PDF con visor (si no hay archivo, usa el default del proyecto)
+  const pdfSrc = `${archivoUrl ?? "/Hackatec2.pdf"}#page=1&zoom=page-width&toolbar=1&navpanes=0`;
+
+  // Estilos del texto que se dibuja SOBRE el PDF
+  const previewTextStyle: CSSProperties = {
+    fontFamily: varTipografia,
+    fontSize: `${varTam}px`,
+    color: varColor,
+    fontWeight: varBold ? "700" : "400",
+    fontStyle: varItalic ? "italic" : "normal",
+    textDecoration: varUnderline ? "underline" : "none",
+    textAlign:
+      varAlign === "Izquierda"
+        ? "left"
+        : varAlign === "Derecha"
+        ? "right"
+        : "center",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  };
+
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/30"
       onDragOverCapture={guardDropOutsideEditor}
       onDropCapture={guardDropOutsideEditor}
     >
-      {/* ⬇ Modal con tamaño fijo y límite de viewport */}
+      {/* Modal fijo: no crece, solo hace scroll interno */}
       <div className="w-[1400px] max-w-[96vw] h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <header className="px-8 py-5 bg-gradient-to-r from-[#3A62D6] to-[#5B4AE5] text-white flex items-center justify-between flex-none">
           <h2 className="text-lg font-semibold">Configuración De Constancia</h2>
@@ -175,7 +213,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
         </header>
 
         <div className="flex-1 px-6 py-5 flex gap-6 items-stretch overflow-hidden">
-          {/* Columna izquierda */}
+          {/* IZQUIERDA: datos + editor */}
           <div className="w-[360px] flex-none h-full overflow-y-auto">
             <div className="mb-4">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -213,14 +251,25 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                 <input
                   type="file"
                   accept="application/pdf"
-                  onChange={(e) =>
-                    setArchivoNombre(e.target.files?.[0]?.name ?? "")
-                  }
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setArchivoNombre(f?.name ?? "");
+                    if (archivoUrl && archivoUrl.startsWith("blob:")) {
+                      URL.revokeObjectURL(archivoUrl);
+                    }
+                    setArchivoUrl(f ? URL.createObjectURL(f) : undefined);
+                  }}
                 />
                 {archivoNombre && (
                   <button
                     type="button"
-                    onClick={() => setArchivoNombre("")}
+                    onClick={() => {
+                      setArchivoNombre("");
+                      if (archivoUrl && archivoUrl.startsWith("blob:")) {
+                        URL.revokeObjectURL(archivoUrl);
+                      }
+                      setArchivoUrl(undefined);
+                    }}
                     className="text-[11px] font-semibold text-rose-600"
                   >
                     Eliminar
@@ -260,7 +309,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
               </div>
             </div>
 
-            {/* TEXTO 👇 AQUÍ VA EL TRUCO */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Texto
@@ -275,7 +323,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                   e.dataTransfer.dropEffect = "copy";
                 }}
                 onDrop={handleDrop}
-               className="w-full h-[180px] overflow-y-auto rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none"
+                className="w-full h-[180px] overflow-y-auto rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none whitespace-pre-wrap break-words"
               />
             </div>
 
@@ -290,18 +338,31 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
             </div>
           </div>
 
-          {/* Columna central */}
+          {/* CENTRO: vista previa PDF + texto encima */}
           <div className="flex-1 h-full overflow-y-auto min-w-0">
-            <div className="border rounded-xl overflow-hidden flex items-center justify-center bg-[#F9FAFF] h-[760px]">
-              <img
-                src={item.imagen}
-                alt={item.titulo}
-                className="max-h-full"
-              />
+            <div className="border rounded-xl overflow-hidden flex items-center justify-center bg-[#F9FAFF] h-[760px] p-4">
+              <div className="relative w-full max-w-[680px] aspect-[210/297] overflow-hidden rounded-xl ring-1 ring-slate-300 bg-white">
+                <>
+                  <iframe
+                    src={pdfSrc}
+                    title="Vista previa PDF"
+                    className="absolute inset-0 w-full h-full"
+                  />
+                  {/* Texto pintado arriba del PDF, sin afectar layout */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center px-16">
+                    <p
+                      style={previewTextStyle}
+                      className="max-h-[80%] overflow-hidden"
+                    >
+                      {texto || "Aquí aparecerá el texto de la constancia."}
+                    </p>
+                  </div>
+                </>
+              </div>
             </div>
           </div>
 
-          {/* Columna derecha */}
+          {/* DERECHA: estilos de fuente */}
           <div className="w-[320px] flex-none h-full overflow-y-auto">
             <p className="text-sm font-semibold text-slate-900 mb-3">
               Detalles de la variable
@@ -309,7 +370,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
 
             <div className="mb-4">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tipografia
+                Tipografía
               </label>
               <select
                 value={varTipografia}

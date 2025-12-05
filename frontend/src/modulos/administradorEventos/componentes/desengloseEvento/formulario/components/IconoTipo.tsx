@@ -1,4 +1,3 @@
- 
 import { FiType, FiAlignLeft, FiMail, FiPhone, FiHash, FiCalendar, FiCheckSquare } from "react-icons/fi";
 
 export type TipoCampo =
