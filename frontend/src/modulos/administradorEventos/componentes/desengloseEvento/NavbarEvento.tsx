@@ -35,9 +35,16 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
   const activo = path.length === 0 ? "informacion" : path.split("/")[0];
 
   const [mounted, setMounted] = useState(false);
+  const [exiting, setExiting] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setMounted(true), 50);
     return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const onSalir = () => setExiting(true);
+    window.addEventListener("admin-eventos:salir", onSalir as EventListener);
+    return () => window.removeEventListener("admin-eventos:salir", onSalir as EventListener);
   }, []);
 
   // ---------- refs para el indicador ----------
@@ -101,7 +108,7 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
     <header className="flex-shrink-0">
       <div
         className={`bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white rounded-t-[32px] transform-gpu transition-all duration-700 ${
-          mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
+          exiting ? "translate-y-6 opacity-0" : mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
         }`}
       >
         {/* encabezado */}

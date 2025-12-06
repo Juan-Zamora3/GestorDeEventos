@@ -112,7 +112,11 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
     <motion.div className="h-full flex flex-col" initial={initialAnimateUp ? { y: 24, opacity: 0, scale: 0.98 } : {}} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.28, 1] }}>
       {/* ZONA AZUL — título + plantillas */}
       <section className="bg-transparent px-14 pt-2 pb-2 text-white">
-        <div className="transform-gpu transition-all duration-[900ms] ease-in-out translate-y-0 opacity-100">
+        <div className={`transform-gpu transition-all ${
+          exitingToDetalle
+            ? "duration-700 ease-in-out -translate-y-16 opacity-0"
+            : "duration-[900ms] ease-in-out translate-y-0 opacity-100"
+        }`}>
           <h1 className="text-2xl font-bold mb-6">Crear Evento</h1>
           <div className="flex justify-center w-full">
             <FilaPlantillasRapidas
