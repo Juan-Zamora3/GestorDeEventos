@@ -111,16 +111,22 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
   }, [eventos, query]);
 
   return (
-    <motion.div className="h-full flex flex-col" initial={initialAnimateUp ? { y: 24, opacity: 0, scale: 0.98 } : {}} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.28, 1] }}>
-      {/* ZONA AZUL — título + plantillas con animación de salida */}
+    <motion.div
+      layout
+      className="h-full flex flex-col"
+      initial={initialAnimateUp ? { y: 24, opacity: 0, scale: 0.98 } : {}}
+      animate={{ y: 0, opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.28, 1], layout: { duration: 0.7, ease: [0.22, 1, 0.28, 1] } }}
+    >
       <AnimatePresence mode="wait">
-        {!expanded && (
+        {!exitingToDetalle && (
           <motion.section
-            className="bg-transparent px-14 pt-2 pb-2 text-white"
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
+            layout
+            className={`bg-transparent px-14 text-white ${expanded ? "h-0 overflow-hidden py-0" : "pt-2 pb-2"}`}
+            initial={false}
+            animate={{ opacity: expanded ? 0 : 1 }}
             exit={{ opacity: 0, y: -40 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.28, 1] }}
+            transition={{ layout: { duration: 0.7, ease: [0.22, 1, 0.28, 1] }, opacity: { duration: 0.3 } }}
             style={{ overflow: "hidden" }}
           >
             <div className="transform-gpu duration-[900ms] ease-in-out translate-y-0 opacity-100">
@@ -138,22 +144,26 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
       </AnimatePresence>
 
       {/* PANEL GRIS con buscador + grid */}
-    <motion.div
-      layout
-      transition={{ layout: { duration: 0.7, ease: [0.22, 1, 0.28, 1] } }}
-      className={`flex-1 min-h-0 transform-gpu ${
-        animDown
-          ? "opacity-0"
-          : exitingToDetalle
-          ? "opacity-0"
-          : showList || expanded
-          ? "opacity-100"
-          : "opacity-0"
-      }`}
-    >
-        <div className={`h-full bg-[#EEF0F7] ${expanded ? "rounded-t-3xl" : "rounded-t-none"} flex flex-col`}>
-          <section className="px-14 pt-5">
-            <div className="bg-white w-full rounded-full px-6 py-3 shadow-sm flex items-center gap-4">
+      <AnimatePresence mode="wait">
+        {!(exitingToDetalle || animDown) && (
+          <motion.div
+            key="panel-gris"
+            layout
+            initial={false}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.28, 1], layout: { duration: 0.7, ease: [0.22, 1, 0.28, 1] } }}
+            className={`flex-1 min-h-0 transform-gpu ${
+              animDown
+                ? "opacity-0"
+                : showList || expanded
+                ? "opacity-100"
+                : "opacity-0"
+            }`}
+          >
+          <div className={`h-full bg-[#EEF0F7] ${expanded ? "rounded-t-3xl" : "rounded-t-none"} flex flex-col`}>
+            <section className="px-14 pt-5">
+              <div className="bg-white w-full rounded-full px-6 py-3 shadow-sm flex items-center gap-4">
               {/* Buscador */}
               <div className="flex items-center gap-3 flex-1">
                 <FiSearch className="text-slate-400 text-lg" />
@@ -219,7 +229,9 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
             </div>
           </section>
         </div>
-    </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
   </motion.div>
   );
 };
