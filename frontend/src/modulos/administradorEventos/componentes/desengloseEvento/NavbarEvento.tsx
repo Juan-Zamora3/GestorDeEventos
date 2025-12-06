@@ -1,17 +1,14 @@
-// src/modulos/administradorEventos/componentes/desengloseEvento/NavbarEvento.tsx
 import type { FC } from "react";
 import {
   useEffect,
-  useLayoutEffect,
-  useRef,
   useState,
+  useRef,
+  useCallback,
+  useLayoutEffect,
 } from "react";
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiChevronLeft } from "react-icons/fi";
+import { motion } from "framer-motion";
 
 interface Props {
   titulo: string;
@@ -37,50 +34,68 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
   const path = location.pathname.replace(base, "").replace(/^\//, "");
   const activo = path.length === 0 ? "informacion" : path.split("/")[0];
 
-  // animación de entrada del header
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setMounted(true), 50);
     return () => window.clearTimeout(t);
   }, []);
 
-  // refs para el indicador
+  // ---------- refs para el indicador ----------
   const navRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
   const [indicator, setIndicator] = useState<{ left: number; width: number }>({
     left: 0,
     width: 0,
   });
+  const [glow, setGlow] = useState(false);
+  const animTimer = useRef<number | undefined>(undefined);
 
-  const recalcIndicator = () => {
+  const recalcFromActiveTab = useCallback(() => {
     const container = navRef.current;
-    const activeBtn = tabRefs.current[activo];
-    if (!container || !activeBtn) return;
+    const btn = tabRefs.current[activo];
+    if (!container || !btn) return;
 
-    const cRect = container.getBoundingClientRect();
-    const aRect = activeBtn.getBoundingClientRect();
+    const c = container.getBoundingClientRect();
+    const b = btn.getBoundingClientRect();
 
-    const maxWidth = Math.min(aRect.width - 8, 96);
-    const left =
-      aRect.left - cRect.left + (aRect.width - maxWidth) / 2;
+    const left = b.left - c.left + 4; // pequeño margen interno
+    const width = b.width - 8;
 
-    setIndicator({
-      left,
-      width: maxWidth,
+    setIndicator((prev) => {
+      // si ya teníamos barra, hacemos anim de “estirado”
+      if (prev.width > 0) {
+        const minX = Math.min(prev.left, left);
+        const maxX = Math.max(prev.left + prev.width, left + width);
+        const unionW = maxX - minX;
+
+        setGlow(true);
+        if (animTimer.current) window.clearTimeout(animTimer.current);
+
+        // primero estiramos
+        animTimer.current = window.setTimeout(() => {
+          setIndicator({ left, width });
+          setGlow(false);
+        }, 250);
+
+        return { left: minX, width: unionW };
+      }
+      // primera vez: solo colocamos
+      return { left, width };
     });
-  };
-
-  // medir después del layout
-  useLayoutEffect(() => {
-    recalcIndicator();
   }, [activo]);
 
-  // actualizar en resize
-  useEffect(() => {
-    const onResize = () => recalcIndicator();
+  // recalcular cuando cambie la pestaña activa
+  useLayoutEffect(() => {
+    recalcFromActiveTab();
+  }, [recalcFromActiveTab]);
+
+  // y cuando cambie el tamaño de la ventana
+  useLayoutEffect(() => {
+    const onResize = () => recalcFromActiveTab();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [activo]);
+  }, [recalcFromActiveTab]);
 
   return (
     <header className="flex-shrink-0">
@@ -89,42 +104,37 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
           mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
         }`}
       >
+        {/* encabezado */}
         <div className="px-6 sm:px-10 pt-6">
           <div className="grid grid-cols-3 items-center">
-            {/* Botón regresar */}
             <div className="flex items-center">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/admin-eventos/lista")}
                 className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transform-gpu transition hover:scale-105"
               >
-                <FiChevronLeft className="text-lg" />
+                <FiChevronLeft />
               </button>
             </div>
-
-            {/* título */}
-            <div className="flex justify-center">
-              <h1 className="text-base sm:text-lg font-semibold text-center">
-                {titulo}
-              </h1>
+            <div className="flex items-center justify-center">
+              <h1 className="text-xl sm:text-2xl font-semibold">{titulo}</h1>
             </div>
-
             <div />
           </div>
         </div>
 
-        {/* NAV TABS */}
+        {/* navbar */}
         <nav className="mt-5 px-6 sm:px-10 pb-5">
           <div
             ref={navRef}
             className="relative w-full bg-[#E5E9F6] rounded-md px-2 py-1"
           >
-            <ul className="flex items-center justify-center gap-10 text-sm text-[#5A5F8D]">
+            <ul className="flex items-center justify-center gap-8 text-sm text-[#5A5F8D]">
               {tabs.map((t) => {
                 const selected = activo === t.id;
                 return (
                   <li key={t.id} className="flex flex-col items-center">
-                    <button
+                    <motion.button
                       type="button"
                       onClick={() =>
                         navigate(
@@ -132,33 +142,53 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
                         )
                       }
                       ref={(el) => {
-                        tabRefs.current[t.id] = el;
+                        tabRefs.current[t.id] = el as HTMLButtonElement | null;
                       }}
-                      className={[
-                        "inline-block w-28 px-3 py-2 rounded-lg text-center",
-                        "transform-gpu transition-all duration-200",
-                        "cursor-pointer",
+                      className={`inline-block min-w-[7rem] px-3 py-2 rounded-lg text-center relative
+                        ${
+                          selected
+                            ? "text-[#3C3A85] font-semibold bg-white shadow-md"
+                            : "text-[#5A5F8D]"
+                        }
+                      `}
+                      initial={false}
+                      animate={
                         selected
-                          ? "text-[#4A4691] font-semibold bg-white/80 shadow-md -translate-y-1 scale-105"
-                          : "text-[#5A5F8D]",
-                        "hover:-translate-y-2 hover:scale-110 hover:bg-white hover:text-[#4A4691] hover:shadow-lg",
-                      ].join(" ")}
+                          ? { y: -4, scale: 1.06 }
+                          : { y: 0, scale: 1 }
+                      }
+                      whileHover={{
+                        y: -8,
+                        scale: 1.1,
+                        letterSpacing: "0.08em",
+                        boxShadow: "0px 14px 35px rgba(0,0,0,0.22)",
+                      }}
+                      whileTap={{
+                        scale: 0.96,
+                        y: -2,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20,
+                        mass: 0.4,
+                      }}
                     >
                       {t.label}
-                    </button>
+                    </motion.button>
                   </li>
                 );
               })}
             </ul>
 
-            {/* Indicador azul */}
+            {/* indicador azul de abajo */}
             <span
-              className="pointer-events-none absolute bottom-0 left-0 h-2 rounded-full bg-gradient-to-r from-[#5B5AE5] to-[#7B5CFF]"
+              className={`absolute bottom-0 left-0 h-2 rounded-full bg-gradient-to-r from-[#5B5AE5] to-[#7B5CFF] transition-[transform,width] duration-500 ease-[cubic-bezier(0.22,1.0,0.28,1)] ${
+                glow ? "drop-shadow-[0_0_12px_rgba(91,74,229,0.7)]" : ""
+              }`}
               style={{
                 transform: `translateX(${indicator.left}px)`,
-                width: `${indicator.width}px`,
-                transition:
-                  "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), width 0.45s cubic-bezier(0.22, 1, 0.36, 1)",
+                width: indicator.width || 0,
               }}
             />
           </div>
