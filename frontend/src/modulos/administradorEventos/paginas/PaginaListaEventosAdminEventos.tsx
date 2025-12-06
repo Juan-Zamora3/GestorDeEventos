@@ -47,11 +47,7 @@ const eventosMock: EventoCardAdminEventos[] = [
 
 export const PaginaListaEventosAdminEventos: React.FC = () => {
   const [animDown, setAnimDown] = useState(false);
-
-  // 🔍 query del buscador
   const [query, setQuery] = useState<string>("");
-
-  // si luego jalas eventos de la BD, solo cambia este estado
   const [eventos] = useState<EventoCardAdminEventos[]>(eventosMock);
 
   const navigate = useNavigate();
@@ -61,26 +57,23 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
     (location.state as { animateUp?: boolean } | null)?.animateUp,
   );
   const [showList, setShowList] = useState<boolean>(!initialAnimateUp);
-  const [showHeader, setShowHeader] = useState<boolean>(!initialAnimateUp);
 
   useEffect(() => {
     const animateUp = Boolean(
       (location.state as { animateUp?: boolean } | null)?.animateUp,
     );
     if (animateUp) {
-      const t1 = window.setTimeout(() => setShowHeader(true), 160);
-      const t2 = window.setTimeout(() => setShowList(true), 200);
+      const t = window.setTimeout(() => setShowList(true), 80);
       return () => {
-        window.clearTimeout(t1);
-        window.clearTimeout(t2);
+        window.clearTimeout(t);
       };
     }
   }, [location.state]);
 
   const irGaleriaConTransicion = () => {
-    setAnimDown(true);
+    setAnimDown(true); // baja el cuadro gris
     window.setTimeout(() => {
-      navigate("/admin-eventos/plantillas");
+      navigate("/admin-eventos/plantillas", { state: { fromLista: true } });
     }, 650);
   };
 
@@ -107,35 +100,31 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
   }, [eventos, query]);
 
   return (
-    <div className="h-full flex flex-col ">
-      {/* ZONA AZUL — título + plantillas (nada de barra blanca aquí) */}
+    <div className="h-full flex flex-col">
+      {/* ZONA AZUL — título + plantillas */}
       <section className="bg-transparent px-14 pt-2 pb-2 text-white">
-        <div
-          className={`transform-gpu transition-all ${
-            showHeader
-              ? "duration-[1100ms] ease-in-out translate-y-0 opacity-100"
-              : "duration-[1100ms] ease-in-out -translate-y-12 opacity-0"
-          }`}
-        >
+        <div className="transform-gpu transition-all duration-[900ms] ease-in-out translate-y-0 opacity-100">
           <h1 className="text-2xl font-bold mb-6">Crear Evento</h1>
           <div className="flex justify-center w-full">
             <FilaPlantillasRapidas
               size="normal"
               onMasClick={irGaleriaConTransicion}
+              hideMas={animDown} // 👈 se oculta “Más plantillas” al bajar
             />
           </div>
         </div>
       </section>
 
-      <div
-        className={`flex-1 min-h-0 transform-gpu transition-all ${
-          animDown
-            ? "duration-700 ease-in-out translate-y-28 opacity-100"
-            : showList
-            ? "duration-[1100ms] ease-in-out translate-y-0 opacity-100"
-            : "duration-[1100ms] ease-in-out translate-y-16 opacity-0"
-        }`}
-      >
+      {/* PANEL GRIS con buscador + grid */}
+    <div
+  className={`flex-1 min-h-0 transform-gpu transition-all ${
+    animDown
+      ? "duration-700 ease-in-out translate-y-full opacity-0"
+      : showList
+      ? "duration-[1100ms] ease-in-out translate-y-0 opacity-100"
+      : "duration-[1100ms] ease-in-out translate-y-16 opacity-0"
+  }`}
+>
         <div className="h-full bg-[#EEF0F7] rounded-t-none flex flex-col">
           <section className="px-14 pt-5">
             <div className="bg-white w-full rounded-full px-6 py-3 shadow-sm flex items-center gap-4">
@@ -190,7 +179,6 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
                 eventos={eventosFiltrados}
                 stagger={initialAnimateUp}
               />
-              {/* opcional: mensaje cuando no hay resultados */}
               {eventosFiltrados.length === 0 && (
                 <p className="mt-6 text-center text-sm text-slate-500">
                   No se encontraron eventos para “{query}”.
@@ -203,3 +191,5 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
     </div>
   );
 };
+
+export default PaginaListaEventosAdminEventos;

@@ -14,6 +14,7 @@ const plantillas: PlantillaEvento[] = [
 interface Props {
   size?: "normal" | "large";
   onMasClick?: () => void;
+  hideMas?: boolean;        // 👈 NUEVO
 }
 
 const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal", onMasClick }) => {
