@@ -24,7 +24,7 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
         overflow-hidden
         bg-white
         ring-2 ring-white
-        transition
+        transform-gpu transition-all duration-300 hover:scale-[1.05] hover:shadow-xl
         relative flex
         snap-start
       `}

@@ -23,7 +23,7 @@ const GridEventosAdminEventos: React.FC<Props> = ({ eventos, stagger = false, on
       {eventos.map((evento, idx) => (
         <article
           key={evento.id}
-          className={`bg-white rounded-3xl overflow-hidden transition cursor-pointer relative transform-gpu transition-all duration-700 ${stagger ? (entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8") : ""}`}
+          className={`bg-white rounded-3xl overflow-hidden cursor-pointer relative transform-gpu transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg ${stagger ? (entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-8") : ""}`}
           style={{ aspectRatio: "4 / 3", ...(stagger ? { transitionDelay: `${idx * 120}ms` } : {}) }}
           onClick={() => (onEventoClick ? onEventoClick(evento.id) : navigate(`/admin-eventos/evento/${evento.id}`))}
         >
