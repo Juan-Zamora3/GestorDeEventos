@@ -21,7 +21,7 @@ const PaginaDetalleEventoAdminAsistencias: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   const tituloEvento =
-    id === "concurso-robotica" ? "Concurso De Robótica Junior" : "Evento";
+    id === "concurso-robotica" ? "Concurso de Robótica Junior" : "Evento";
 
   // Animaciones tipo NavbarEvento
   const [mounted, setMounted] = useState(false);
@@ -81,8 +81,8 @@ const PaginaDetalleEventoAdminAsistencias: React.FC = () => {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.28, 1] }}
       >
       <header className="flex-shrink-0">
-        <div className={`bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white transform-gpu transition-all duration-700 ${mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"}`}>
-          <div className="px-6 sm:px-10 pt-6">
+        <div className={`bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white rounded-t-[32px] transform-gpu transition-all duration-700 ${mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"}`}>
+          <div className="px-6 sm:px-10 pt-4">
             <div className="grid grid-cols-3 items-center">
               <div className="flex items-center">
                 <button
@@ -105,8 +105,8 @@ const PaginaDetalleEventoAdminAsistencias: React.FC = () => {
             </div>
           </div>
 
-          <nav className="mt-10 px-6 sm:px-10 pb-0">
-            <div ref={navRef} className="relative w-full bg-[#E5E9F6] rounded-2xl px-6 py-4">
+          <nav className="mt-6 px-6 sm:px-10 pb-0">
+            <div ref={navRef} className="relative w-full bg-[#E5E9F6] rounded-2xl px-6 py-3">
               <ul className="flex items-center justify-center gap-8 text-sm text-[#5A5F8D]">
                 {TABS.map((t) => {
                   const selected = tab === t.id;
