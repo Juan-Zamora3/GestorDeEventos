@@ -4,7 +4,7 @@ import type {
   CSSProperties,
   MouseEvent as ReactMouseEvent,
 } from "react";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect,  } from "react";
 import { createPortal } from "react-dom";
 
 interface PlantillaItem {
@@ -27,7 +27,7 @@ const buildPdfSrc = (pdfUrl?: string) => {
   const base =
     pdfUrl && pdfUrl.trim() !== "" ? pdfUrl : "/Hackatec2.pdf";
 
-  const v = Date.now();
+  
   const zoom = "60"; // ajusta 100–130 según qué tan grande quieras verlo
 
   return `${base}#page=1&zoom=${zoom}`;
