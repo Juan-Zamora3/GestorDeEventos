@@ -7,6 +7,7 @@ const eventosMock: EventoResumen[] = [
   {
     id: "concurso-robotica",
     titulo: "Concurso de Robótica Junior",
+    tipo: "Concurso",
     imagen: "/login-campus.png",
     fechaInicio: "12/08/2026",
     fechaFin: "20/08/2026",
@@ -17,6 +18,7 @@ const eventosMock: EventoResumen[] = [
   {
     id: "foro-innovacion",
     titulo: "Foro de Innovación Tecnológica",
+    tipo: "Congreso",
     imagen: "/Concurso.png",
     fechaInicio: "05/09/2026",
     fechaFin: "05/09/2026",
@@ -27,6 +29,7 @@ const eventosMock: EventoResumen[] = [
   {
     id: "curso-python",
     titulo: "Curso de Python para Ingeniería",
+    tipo: "Curso",
     imagen: "/Cursos.png",
     fechaInicio: "15/07/2026",
     fechaFin: "30/07/2026",
@@ -40,18 +43,29 @@ const PaginaListaEventosAdminAsistencias: React.FC = () => {
   const navigate = useNavigate();
   const [vista, setVista] = useState<"grid" | "lista">("grid");
   const [query, setQuery] = useState("");
+  const [tipo, setTipo] = useState<"Todos" | NonNullable<EventoResumen["tipo"]>>("Todos");
+  const [estado, setEstado] = useState<"Todos" | "Activos" | "Finalizados">("Todos");
+  const [openTipo, setOpenTipo] = useState(false);
+  const [openEstado, setOpenEstado] = useState(false);
+  const opcionesTipo: ("Todos" | NonNullable<EventoResumen["tipo"]>)[] = [
+    "Todos",
+    "Concurso",
+    "Curso",
+    "Congreso",
+    "Seminario",
+    "Otro",
+  ];
 
   const filtrados = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return eventosMock;
-    return eventosMock.filter((e) =>
-      e.titulo.toLowerCase().includes(term) ||
-      e.fechaInicio.toLowerCase().includes(term) ||
-      e.fechaFin.toLowerCase().includes(term) ||
-      e.equipos.toLowerCase().includes(term) ||
-      e.personas.toLowerCase().includes(term)
-    );
-  }, [query]);
+    return eventosMock.filter((e) => {
+      const byQuery = !term || [e.titulo, e.fechaInicio, e.fechaFin, e.equipos, e.personas]
+        .some((v) => (v ?? "").toLowerCase().includes(term));
+      const byTipo = tipo === "Todos" || e.tipo === tipo;
+      const byEstado = estado === "Todos" || (estado === "Activos" ? e.activo : !e.activo);
+      return byQuery && byTipo && byEstado;
+    });
+  }, [query, tipo, estado]);
 
   return (
     <div className="min-h-full bg-[#F1F3FA] px-16 py-10">
@@ -73,14 +87,54 @@ const PaginaListaEventosAdminAsistencias: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button type="button" className="inline-flex items-center gap-2 bg-white rounded-full shadow-sm px-5 py-2 text-sm text-slate-700">
-            <span>Tipo</span>
-            <FiChevronDown className="text-slate-400" />
-          </button>
-          <button type="button" className="inline-flex items-center gap-2 bg-white rounded-full shadow-sm px-5 py-2 text-sm text-slate-700">
-            <span>Estado</span>
-            <FiChevronDown className="text-slate-400" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenTipo((v) => !v)}
+              className="inline-flex items-center gap-2 bg-white rounded-full shadow-sm px-5 py-2 text-sm text-slate-700"
+            >
+              <span>{tipo === "Todos" ? "Tipo" : tipo}</span>
+              <FiChevronDown className="text-slate-400" />
+            </button>
+            {openTipo && (
+              <div className="absolute z-10 mt-2 w-40 rounded-xl border border-slate-200 bg-white shadow-sm">
+                {opcionesTipo.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => { setTipo(t); setOpenTipo(false); }}
+                    className={`w-full text-left px-3 py-2 text-[11px] font-semibold ${tipo === t ? "text-[#356BFF]" : "text-slate-700"} hover:bg-slate-50`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenEstado((v) => !v)}
+              className="inline-flex items-center gap-2 bg-white rounded-full shadow-sm px-5 py-2 text-sm text-slate-700"
+            >
+              <span>{estado === "Todos" ? "Estado" : estado}</span>
+              <FiChevronDown className="text-slate-400" />
+            </button>
+            {openEstado && (
+              <div className="absolute z-10 mt-2 w-40 rounded-xl border border-slate-200 bg-white shadow-sm">
+                {(["Todos", "Activos", "Finalizados"] as const).map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => { setEstado(e); setOpenEstado(false); }}
+                    className={`w-full text-left px-3 py-2 text-[11px] font-semibold ${estado === e ? "text-[#356BFF]" : "text-slate-700"} hover:bg-slate-50`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2 bg-white rounded-full shadow-sm px-2 py-1">
             <button type="button" aria-label="Vista de cuadrícula" onClick={() => setVista("grid")} className={`h-8 w-8 rounded-full flex items-center justify-center ${vista === "grid" ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:bg-slate-50"}`}>
               <FiGrid />

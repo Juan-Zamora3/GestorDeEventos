@@ -18,6 +18,7 @@ const eventosMock: EventoCardAdminEventos[] = [
   {
     id: "1",
     titulo: "Concurso de Robotica Junior",
+    tipo: "Concurso",
     imagen: "/login-campus.png",
     fechaInicio: "12/08/2026",
     fechaFin: "20/08/2026",
@@ -28,6 +29,7 @@ const eventosMock: EventoCardAdminEventos[] = [
   {
     id: "2",
     titulo: "Concurso de Robotica Junior",
+    tipo: "Curso",
     imagen: "/Cursos.png",
     fechaInicio: "12/08/2026",
     fechaFin: "20/08/2026",
@@ -38,6 +40,7 @@ const eventosMock: EventoCardAdminEventos[] = [
   {
     id: "3",
     titulo: "Concurso de Robotica Junior",
+    tipo: "Congreso",
     imagen: "/Concurso.png",
     fechaInicio: "12/08/2026",
     fechaFin: "20/08/2026",
@@ -53,6 +56,19 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
   const [eventos] = useState<EventoCardAdminEventos[]>(eventosMock);
   const [exitingToDetalle, setExitingToDetalle] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [vista, setVista] = useState<"grid" | "lista">("grid");
+  const [tipo, setTipo] = useState<"Todos" | NonNullable<EventoCardAdminEventos["tipo"]>>("Todos");
+  const [estado, setEstado] = useState<"Todos" | "Activos" | "Finalizados">("Todos");
+  const [openTipo, setOpenTipo] = useState(false);
+  const [openEstado, setOpenEstado] = useState(false);
+  const opcionesTipo: ("Todos" | NonNullable<EventoCardAdminEventos["tipo"]>)[] = [
+    "Todos",
+    "Concurso",
+    "Curso",
+    "Congreso",
+    "Seminario",
+    "Otro",
+  ];
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,11 +104,9 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
     }, 650);
   };
 
-  // 🔎 eventos filtrados por el buscador
+  // 🔎 eventos filtrados (buscador + tipo + estado)
   const eventosFiltrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return eventos;
-
     return eventos.filter((e) => {
       const titulo = e.titulo.toLowerCase();
       const fechaInicio = e.fechaInicio?.toLowerCase?.() ?? "";
@@ -100,15 +114,12 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
       const equipos = e.equipos?.toLowerCase?.() ?? "";
       const personas = e.personas?.toLowerCase?.() ?? "";
 
-      return (
-        titulo.includes(q) ||
-        fechaInicio.includes(q) ||
-        fechaFin.includes(q) ||
-        equipos.includes(q) ||
-        personas.includes(q)
-      );
+      const byQuery = !q || [titulo, fechaInicio, fechaFin, equipos, personas].some((v) => v.includes(q));
+      const byTipo = tipo === "Todos" || e.tipo === tipo;
+      const byEstado = estado === "Todos" || (estado === "Activos" ? e.activo : !e.activo);
+      return byQuery && byTipo && byEstado;
     });
-  }, [eventos, query]);
+  }, [eventos, query, tipo, estado]);
 
   return (
     <motion.div
@@ -177,29 +188,71 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
               </div>
 
               {/* Tipo */}
-              <button
-                type="button"
-                className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
-              >
-                <span>Tipo</span>
-                <FiChevronDown className="text-slate-400" />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenTipo((v) => !v)}
+                  className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
+                >
+                  <span>{tipo === "Todos" ? "Tipo" : tipo}</span>
+                  <FiChevronDown className="text-slate-400" />
+                </button>
+                {openTipo && (
+                  <div className="absolute z-10 mt-2 w-40 rounded-xl border border-slate-200 bg-white shadow-sm">
+                    {opcionesTipo.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => { setTipo(t); setOpenTipo(false); }}
+                        className={`w-full text-left px-3 py-2 text-[11px] font-semibold ${tipo === t ? "text-[#356BFF]" : "text-slate-700"} hover:bg-slate-50`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Estado */}
-              <button
-                type="button"
-                className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
-              >
-                <span>Estado</span>
-                <FiChevronDown className="text-slate-400" />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenEstado((v) => !v)}
+                  className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full"
+                >
+                  <span>{estado === "Todos" ? "Estado" : estado}</span>
+                  <FiChevronDown className="text-slate-400" />
+                </button>
+                {openEstado && (
+                  <div className="absolute z-10 mt-2 w-40 rounded-xl border border-slate-200 bg-white shadow-sm">
+                    {(["Todos", "Activos", "Finalizados"] as const).map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => { setEstado(e); setOpenEstado(false); }}
+                        className={`w-full text-left px-3 py-2 text-[11px] font-semibold ${estado === e ? "text-[#356BFF]" : "text-slate-700"} hover:bg-slate-50`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Botones de vista y orden */}
               <div className="flex items-center gap-2">
-                <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => setVista("grid")}
+                  className={`h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center ${vista === "grid" ? "text-slate-800" : "text-slate-500"}`}
+                >
                   <FiGrid />
                 </button>
-                <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                <button
+                  type="button"
+                  onClick={() => setVista("lista")}
+                  className={`h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center ${vista === "lista" ? "text-slate-800" : "text-slate-500"}`}
+                >
                   <FiList />
                 </button>
                 <button
@@ -216,11 +269,31 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
 
           <section className="px-14 pt-6 pb-8 flex-1 min-h-0">
             <div className="bg-white rounded-3xl px-6 py-4 h-full overflow-auto">
-              <GridEventosAdminEventos
-                eventos={eventosFiltrados}
-                stagger={initialAnimateUp}
-                onEventoClick={irDetalleConTransicion}
-              />
+              {vista === "grid" ? (
+                <GridEventosAdminEventos
+                  eventos={eventosFiltrados}
+                  stagger={initialAnimateUp}
+                  onEventoClick={irDetalleConTransicion}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {eventosFiltrados.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => irDetalleConTransicion(e.id)}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{e.titulo}</p>
+                        <p className="text-[11px] text-slate-600">{e.fechaInicio} - {e.fechaFin}</p>
+                        <p className="text-[11px] text-slate-500 mt-1">{e.equipos} · {e.personas}</p>
+                      </div>
+                      <span className={`h-2.5 w-2.5 rounded-full ${e.activo ? "bg-emerald-400" : "bg-slate-300"}`} />
+                    </button>
+                  ))}
+                </div>
+              )}
               {eventosFiltrados.length === 0 && (
                 <p className="mt-6 text-center text-sm text-slate-500">
                   No se encontraron eventos para “{query}”.

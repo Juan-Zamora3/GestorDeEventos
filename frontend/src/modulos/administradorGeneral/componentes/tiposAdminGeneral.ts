@@ -3,6 +3,7 @@
 export interface EventoCard {
   id: number;
   titulo: string;
+  tipo?: "Concurso" | "Curso" | "Congreso" | "Seminario" | "Otro";
   fechaInicio: string;
   fechaFin: string;
   equipos: string;

@@ -3,6 +3,7 @@ export interface EventoResumen {
   id: string;
   titulo: string;
   imagen: string;
+  tipo?: "Concurso" | "Curso" | "Congreso" | "Seminario" | "Otro";
   fechaInicio: string;
   fechaFin: string;
   equipos: string;
