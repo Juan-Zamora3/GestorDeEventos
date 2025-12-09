@@ -9,10 +9,9 @@ import {
   FiSend,
   FiClock,
 } from "react-icons/fi";
-import ModalDescargarConstancias from "./ModalDescargarConstancias";
-import ModalEnviarConstancias from "./ModalEnviarConstancias";
+
 import HistorialEnvioCorreos from "./HistorialEnvioCorreos";
-import ModalImprimirConstancias from "./ModalImprimirConstancias";
+
 
 interface Persona { id: string; nombre: string }
 interface Categoria { id: string; titulo: string; personas: Persona[] }
@@ -185,13 +184,6 @@ const SeccionConstanciasDesenglose: FC = () => {
     <section className="px-6 sm:px-10 py-6">
       <div className="flex items-center justify-end mb-4">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={imprimir}
-            className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
-          >
-            <FiPrinter /> Imprimir
-          </button>
          
           <button
             type="button"
@@ -199,20 +191,6 @@ const SeccionConstanciasDesenglose: FC = () => {
             className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
           >
             <FiClock /> Historial
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpenEnviar(true)}
-            className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
-          >
-            <FiSend /> Enviar
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpenDescargar(true)}
-            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white inline-flex items-center gap-2 shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"
-          >
-            <FiDownload /> Descargar
           </button>
         </div>
       </div>
@@ -401,38 +379,6 @@ const SeccionConstanciasDesenglose: FC = () => {
       </div>
 
       {/* ===== MODALES ===== */}
-      {openDescargar && (
-        <ModalDescargarConstancias
-          abierto={openDescargar}
-          onCerrar={() => setOpenDescargar(false)}
-          onAceptar={(cfg) => {
-            void cfg;
-            setOpenDescargar(false);
-            descargar();
-          }}
-        />
-      )}
-      {openImprimir && (
-        <ModalImprimirConstancias
-          abierto={openImprimir}
-          categorias={categorias}
-          onCerrar={() => setOpenImprimir(false)}
-          onAceptar={(cfg) => {
-            void cfg;
-            setOpenImprimir(false);
-          }}
-        />
-      )}
-      {openEnviar && (
-        <ModalEnviarConstancias
-          abierto={openEnviar}
-          onCerrar={() => setOpenEnviar(false)}
-          onAceptar={(cfg) => {
-            void cfg;
-            setOpenEnviar(false);
-          }}
-        />
-      )}
       {openHistorial && (
         <HistorialEnvioCorreos
           abierto={openHistorial}

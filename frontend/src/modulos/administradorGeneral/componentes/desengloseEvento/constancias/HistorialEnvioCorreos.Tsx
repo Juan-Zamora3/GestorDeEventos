@@ -9,7 +9,6 @@ import {
   FiClock,
   FiSearch,
   FiEye,
-  FiRefreshCw,
   FiX,
 } from "react-icons/fi";
 
@@ -216,94 +215,86 @@ const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
             </div>
 
             {/* Lista de envíos */}
-            {/* Lista de envíos */}
-<div className="flex-1 min-h-0 px-6 pb-5 pt-3">
-  <div className="rounded-2xl bg-[#F9FAFF] border border-slate-100 shadow-inner flex flex-col">
-    <div className="px-4 pt-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-      <span>Envíos</span>
-      <span>{filtrados.length} registro(s)</span>
-    </div>
+            <div className="flex-1 min-h-0 px-6 pb-5 pt-3">
+              <div className="rounded-2xl bg-[#F9FAFF] border border-slate-100 shadow-inner flex flex-col">
+                <div className="px-4 pt-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                  <span>Envíos</span>
+                  <span>{filtrados.length} registro(s)</span>
+                </div>
 
-    {/* Contenedor de ALTO FIJO para la tabla */}
-    <div
-      className="overflow-y-auto px-1 pb-2"
-      style={{
-        maxHeight: "420px",        // 🔹 alto máximo de la tabla
-        minHeight: "260px",        // 🔹 para que no se encoja demasiado con pocos registros
-        scrollbarGutter: "stable" as any,
-      }}
-    >
-      {filtrados.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-xs text-slate-500">
-          No se encontraron envíos con los filtros actuales.
-        </div>
-      ) : (
-        <ul className="divide-y divide-slate-200 text-sm">
-          {filtrados.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-start gap-4 px-3 py-3 hover:bg-white transition-colors rounded-xl"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {r.nombre}
-                </p>
-                <p className="text-xs text-slate-600 truncate">
-                  {r.correo}
-                </p>
+                <div
+                  className="overflow-y-auto px-1 pb-2"
+                  style={{
+                    maxHeight: "420px",
+                    minHeight: "260px",
+                    scrollbarGutter: "stable" as any,
+                  }}
+                >
+                  {filtrados.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                      No se encontraron envíos con los filtros actuales.
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-slate-200 text-sm">
+                      {filtrados.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-start gap-4 px-3 py-3 hover:bg-white transition-colors rounded-xl"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">
+                              {r.nombre}
+                            </p>
+                            <p className="text-xs text-slate-600 truncate">
+                              {r.correo}
+                            </p>
 
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
-                  <span>
-                    <span className="font-semibold">Canal:</span> {r.canal}
-                  </span>
-                  {r.asunto && (
-                    <span>
-                      <span className="font-semibold">Asunto:</span> {r.asunto}
-                    </span>
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                              <span>
+                                <span className="font-semibold">Canal:</span>{" "}
+                                {r.canal}
+                              </span>
+                              {r.asunto && (
+                                <span>
+                                  <span className="font-semibold">
+                                    Asunto:
+                                  </span>{" "}
+                                  {r.asunto}
+                                </span>
+                              )}
+                              <span>
+                                <span className="font-semibold">Fecha:</span>{" "}
+                                {r.fecha}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            {chipEstado(r.estado)}
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setDet(r)}
+                                className="h-8 w-8 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center hover:brightness-110"
+                                title="Ver detalle"
+                              >
+                                <FiEye />
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                  <span>
-                    <span className="font-semibold">Fecha:</span> {r.fecha}
-                  </span>
                 </div>
               </div>
-
-              <div className="flex flex-col items-end gap-2">
-                {chipEstado(r.estado)}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDet(r)}
-                    className="h-8 w-8 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center hover:brightness-110"
-                    title="Ver detalle"
-                  >
-                    <FiEye />
-                  </button>
-                  {r.estado !== "Enviado" && (
-                    <button
-                      type="button"
-                      onClick={() => setDet(r)}
-                      className="h-8 w-8 rounded-full bg-[#EEF0FF] text-[#5B4AE5] inline-flex items-center justify-center hover:bg-[#E6E9FF]"
-                      title="Reintentar / Reenviar"
-                    >
-                      <FiRefreshCw />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  </div>
-</div>
-
+            </div>
           </section>
 
           {/* LADO DERECHO: DETALLE */}
           <aside className="w-[360px] flex-none flex flex-col bg-[#F5F6FF]">
             <div className="px-5 py-4 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-800">Detalle</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Detalle</h3>
               <p className="text-xs text-slate-500">
                 {det
                   ? "Resumen del envío seleccionado."
@@ -344,20 +335,10 @@ const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
                       </p>
                     </div>
                   </div>
-
-                  <div className="pt-2 flex justify-end">
-                    <button
-                      type="button"
-                      className="px-4 py-2 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-xs font-semibold text-white hover:brightness-110"
-                    >
-                      Reenviar
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center text-xs text-slate-500 text-center px-2">
-                  Selecciona un envío de la lista para ver su detalle y opciones
-                  de reenvío.
+                  Selecciona un envío de la lista para ver su detalle.
                 </div>
               )}
             </div>
