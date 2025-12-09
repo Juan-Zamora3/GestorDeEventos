@@ -1,30 +1,15 @@
-import React, { useMemo, useState } from "react";
+// src/modulos/administradorGeneral/paginas/PaginaHistorialAdminGeneral.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import TablaHistorialAdmin from "../componentes/TablaHistorialAdmin";
 import type { EntradaHistorial } from "../componentes/tiposAdminGeneral";
 import { FiSearch, FiChevronDown } from "react-icons/fi";
-
-const historialDummy: EntradaHistorial[] = [
-  {
-    id: 1,
-    nombre: "Daniel",
-    rol: "Administradores de Asistencias",
-    evento: "Concurso de robótica Junior",
-    accion: 'Se agregó equipo "Los Trataleritos"',
-    fecha: "26/11/2024",
-    hora: "16:40",
-  },
-  {
-    id: 2,
-    nombre: "Sofía",
-    rol: "Administradores de Eventos",
-    evento: "Concurso de robótica Junior",
-    accion: "Se generaron 30 constancias por correo",
-    fecha: "26/11/2024",
-    hora: "16:45",
-  },
-];
+import { obtenerHistorialAdminGeneral } from "../../../api/adminGeneralApi";
 
 export const PaginaHistorialAdminGeneral: React.FC = () => {
+  const [historial, setHistorial] = useState<EntradaHistorial[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
   const [menuFiltrosOpen, setMenuFiltrosOpen] = useState(false);
   const [filtroRol, setFiltroRol] = useState("");
@@ -32,22 +17,46 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
   const [filtroAccion, setFiltroAccion] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
 
-  const opcionesRol = useMemo(() => {
-    return Array.from(new Set(historialDummy.map((h) => h.rol)));
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        setCargando(true);
+        setError(null);
+        const data = await obtenerHistorialAdminGeneral();
+        setHistorial(data);
+      } catch (e) {
+        console.error("[PaginaHistorialAdminGeneral] Error al cargar", e);
+        setError(
+          "No se pudo cargar el historial. Intenta de nuevo en unos minutos.",
+        );
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargar();
   }, []);
-  const opcionesEvento = useMemo(() => {
-    return Array.from(new Set(historialDummy.map((h) => h.evento)));
-  }, []);
-  const opcionesAccion = useMemo(() => {
-    return Array.from(new Set(historialDummy.map((h) => h.accion)));
-  }, []);
-  const opcionesFecha = useMemo(() => {
-    return Array.from(new Set(historialDummy.map((h) => h.fecha)));
-  }, []);
+
+  const opcionesRol = useMemo(
+    () => Array.from(new Set(historial.map((h) => h.rol))).filter(Boolean),
+    [historial],
+  );
+  const opcionesEvento = useMemo(
+    () => Array.from(new Set(historial.map((h) => h.evento))).filter(Boolean),
+    [historial],
+  );
+  const opcionesAccion = useMemo(
+    () => Array.from(new Set(historial.map((h) => h.accion))).filter(Boolean),
+    [historial],
+  );
+  const opcionesFecha = useMemo(
+    () => Array.from(new Set(historial.map((h) => h.fecha))).filter(Boolean),
+    [historial],
+  );
 
   const entradasFiltradas = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return historialDummy.filter((h) => {
+    return historial.filter((h) => {
       const globalStr = `${h.nombre} ${h.rol} ${h.evento} ${h.accion} ${h.fecha} ${h.hora}`.toLowerCase();
 
       const pasaBusqueda = q ? globalStr.includes(q) : true;
@@ -56,13 +65,30 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
       const pasaAccion = filtroAccion ? h.accion === filtroAccion : true;
       const pasaFecha = filtroFecha ? h.fecha === filtroFecha : true;
 
-      return pasaBusqueda && pasaRol && pasaEvento && pasaAccion && pasaFecha;
+      return (
+        pasaBusqueda &&
+        pasaRol &&
+        pasaEvento &&
+        pasaAccion &&
+        pasaFecha
+      );
     });
-  }, [query, filtroRol, filtroEvento, filtroAccion, filtroFecha]);
+  }, [historial, query, filtroRol, filtroEvento, filtroAccion, filtroFecha]);
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-xl font-semibold text-slate-800 mb-4">Historial de acciones</h1>
+      <h1 className="text-xl font-semibold text-slate-800 mb-4">
+        Historial de acciones
+      </h1>
+
+      {cargando && historial.length === 0 && (
+        <p className="text-sm text-slate-500 mb-3">Cargando historial...</p>
+      )}
+      {error && (
+        <p className="text-sm text-red-500 mb-3">
+          {error}
+        </p>
+      )}
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 bg-white rounded-full px-4 py-2 shadow-sm flex-1 min-w-[320px]">
@@ -89,8 +115,11 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
           {menuFiltrosOpen && (
             <div className="absolute right-0 mt-2 w-96 rounded-2xl border border-slate-200 bg-white shadow-md p-4 z-20">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                {/* Rol */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-600">Rol</span>
+                  <span className="text-xs font-semibold text-slate-600">
+                    Rol
+                  </span>
                   <select
                     value={filtroRol}
                     onChange={(e) => setFiltroRol(e.target.value)}
@@ -98,13 +127,18 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
                   >
                     <option value="">Todos</option>
                     {opcionesRol.map((rol) => (
-                      <option key={rol} value={rol}>{rol}</option>
+                      <option key={rol} value={rol}>
+                        {rol}
+                      </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Evento */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-600">Evento asignado</span>
+                  <span className="text-xs font-semibold text-slate-600">
+                    Evento asignado
+                  </span>
                   <select
                     value={filtroEvento}
                     onChange={(e) => setFiltroEvento(e.target.value)}
@@ -112,13 +146,18 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
                   >
                     <option value="">Todos</option>
                     {opcionesEvento.map((ev) => (
-                      <option key={ev} value={ev}>{ev}</option>
+                      <option key={ev} value={ev}>
+                        {ev}
+                      </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Acción */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-600">Acción</span>
+                  <span className="text-xs font-semibold text-slate-600">
+                    Acción
+                  </span>
                   <select
                     value={filtroAccion}
                     onChange={(e) => setFiltroAccion(e.target.value)}
@@ -126,13 +165,18 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
                   >
                     <option value="">Todas</option>
                     {opcionesAccion.map((ac) => (
-                      <option key={ac} value={ac}>{ac}</option>
+                      <option key={ac} value={ac}>
+                        {ac}
+                      </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Fecha */}
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-600">Fecha</span>
+                  <span className="text-xs font-semibold text-slate-600">
+                    Fecha
+                  </span>
                   <select
                     value={filtroFecha}
                     onChange={(e) => setFiltroFecha(e.target.value)}
@@ -140,7 +184,9 @@ export const PaginaHistorialAdminGeneral: React.FC = () => {
                   >
                     <option value="">Todas</option>
                     {opcionesFecha.map((fe) => (
-                      <option key={fe} value={fe}>{fe}</option>
+                      <option key={fe} value={fe}>
+                        {fe}
+                      </option>
                     ))}
                   </select>
                 </div>

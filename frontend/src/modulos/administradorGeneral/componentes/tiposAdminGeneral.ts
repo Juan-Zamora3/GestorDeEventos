@@ -1,7 +1,7 @@
 // src/modulos/administradorGeneral/componentes/tiposAdminGeneral.ts
 
 export interface EventoCard {
-  id: number;
+  id: string; // 👈 string, NO number
   titulo: string;
   tipo?: "Concurso" | "Curso" | "Congreso" | "Seminario" | "Otro";
   fechaInicio: string;
@@ -13,7 +13,7 @@ export interface EventoCard {
 }
 
 export interface UsuarioRow {
-  id: number;
+  id: string; // 👈 string, NO number (id del doc en eventos_usuarios_rol_evento)
   nombre: string;
   correo: string;
   telefono: string;
@@ -23,7 +23,7 @@ export interface UsuarioRow {
 }
 
 export interface EntradaHistorial {
-  id: number;
+  id: string; // 👈 string también
   nombre: string;
   rol: string;
   evento: string;
