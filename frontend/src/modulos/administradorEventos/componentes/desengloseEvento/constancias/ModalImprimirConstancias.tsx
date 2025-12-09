@@ -1,8 +1,16 @@
-import { useMemo, useState } from "react";
+// src/modulos/administradorEventos/componentes/desengloseEvento/constancias/ModalImprimirConstancias.tsx
+import { useMemo, useState, useEffect } from "react";
 import type { FC } from "react";
 
-interface Persona { id: string; nombre: string }
-interface Categoria { id: string; titulo: string; personas: Persona[] }
+interface Persona {
+  id: string;
+  nombre: string;
+}
+interface Categoria {
+  id: string;
+  titulo: string;
+  personas: Persona[];
+}
 
 interface Props {
   abierto: boolean;
@@ -14,16 +22,28 @@ interface Props {
   }) => void;
 }
 
-const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, onAceptar }) => {
+const ModalImprimirConstancias: FC<Props> = ({
+  abierto,
+  onCerrar,
+  categorias,
+  onAceptar,
+}) => {
   const [tipo, setTipo] = useState<"pdf" | "zip">("pdf");
   const [filtros, setFiltros] = useState<Set<string>>(
-    () => new Set(categorias.map((c) => c.id))
+    () => new Set(categorias.map((c) => c.id)),
   );
+
+  // 🔹 Si cambian las categorías (por Firebase), actualizamos filtros
+  useEffect(() => {
+    setFiltros(new Set(categorias.map((c) => c.id)));
+  }, [categorias]);
 
   const personasFiltradas = useMemo(() => {
     return categorias
       .filter((c) => filtros.has(c.id))
-      .flatMap((c) => c.personas.map((p) => ({ ...p, categoriaId: c.id })));
+      .flatMap((c) =>
+        c.personas.map((p) => ({ ...p, categoriaId: c.id })),
+      );
   }, [categorias, filtros]);
 
   if (!abierto) return null;
@@ -40,7 +60,10 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
   const aceptar = () => {
     const seleccion = categorias
       .filter((c) => filtros.has(c.id))
-      .map((c) => ({ categoriaId: c.id, personaIds: c.personas.map((p) => p.id) }));
+      .map((c) => ({
+        categoriaId: c.id,
+        personaIds: c.personas.map((p) => p.id),
+      }));
     onAceptar({ tipo, seleccion });
   };
 
@@ -49,7 +72,9 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
       <div className="w-[900px] h-[70vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <div className="bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] px-8 py-4">
           <div className="flex items-center justify-between">
-            <p className="text-white text-sm font-semibold">Imprimir constancias</p>
+            <p className="text-white text-sm font-semibold">
+              Imprimir constancias
+            </p>
             <div className="flex items-center gap-2">
               <div className="inline-flex rounded-full bg-white/20 p-1">
                 {(["pdf", "zip"] as const).map((t) => {
@@ -59,7 +84,11 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
                       key={t}
                       type="button"
                       onClick={() => setTipo(t)}
-                      className={`px-4 py-1.5 rounded-full text-xs font-semibold ${active ? "bg-white text-slate-800" : "text-white"}`}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold ${
+                        active
+                          ? "bg-white text-slate-800"
+                          : "text-white"
+                      }`}
                     >
                       {t === "pdf" ? "PDF" : "ZIP"}
                     </button>
@@ -72,7 +101,9 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
 
         <div className="px-8 py-6 flex-1 overflow-auto">
           <div className="mb-4">
-            <p className="text-xs font-semibold text-slate-700 mb-2">Filtrar</p>
+            <p className="text-xs font-semibold text-slate-700 mb-2">
+              Filtrar
+            </p>
             <div className="flex flex-wrap gap-2">
               {categorias.map((c) => {
                 const active = filtros.has(c.id);
@@ -81,7 +112,11 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
                     key={c.id}
                     type="button"
                     onClick={() => toggleFiltro(c.id)}
-                    className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${active ? "bg-[#E9ECF9] text-slate-800" : "bg-[#F2F3FB] text-slate-700"}`}
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-semibold ${
+                      active
+                        ? "bg-[#E9ECF9] text-slate-800"
+                        : "bg-[#F2F3FB] text-slate-700"
+                    }`}
                   >
                     {c.titulo}
                   </button>
@@ -92,16 +127,23 @@ const ModalImprimirConstancias: FC<Props> = ({ abierto, onCerrar, categorias, on
 
           <div className="rounded-xl border border-slate-200">
             <div className="px-3 py-2 border-b border-slate-200">
-              <p className="text-xs font-semibold text-slate-700">Constancia de</p>
+              <p className="text-xs font-semibold text-slate-700">
+                Constancia de
+              </p>
             </div>
             <ul className="max-h-[320px] overflow-auto">
               {personasFiltradas.map((p) => (
-                <li key={`${p.categoriaId}-${p.id}`} className="px-3 py-2 text-sm text-slate-800 border-t border-slate-100 first:border-t-0">
+                <li
+                  key={`${p.categoriaId}-${p.id}`}
+                  className="px-3 py-2 text-sm text-slate-800 border-t border-slate-100 first:border-t-0"
+                >
                   {p.nombre}
                 </li>
               ))}
               {personasFiltradas.length === 0 && (
-                <li className="px-3 py-4 text-sm text-slate-500">Sin resultados</li>
+                <li className="px-3 py-4 text-sm text-slate-500">
+                  Sin resultados
+                </li>
               )}
             </ul>
           </div>

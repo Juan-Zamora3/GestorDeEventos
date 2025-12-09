@@ -1,3 +1,4 @@
+// src/modulos/administradorEventos/componentes/IncioEvento/FilaPlantillasRapidas.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import TarjetaPlantillaEvento from "./TarjetaPlantillaEvento";
@@ -17,7 +18,11 @@ interface Props {
   hideMas?: boolean;
 }
 
-const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal", onMasClick, hideMas = false }) => {
+const FilaPlantillasRapidas: React.FC<Props> = ({
+  size = "normal",
+  onMasClick,
+  hideMas = false,
+}) => {
   const navigate = useNavigate();
 
   const manejarClickPlantilla = (id: string) => {
@@ -37,14 +42,14 @@ const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal", onMasClick, h
     }
   };
 
+  const listaMostrar = hideMas
+    ? plantillas.filter((p) => p.id !== "mas")
+    : plantillas;
+
   return (
     <div className="w-full overflow-x-auto snap-x snap-mandatory no-scrollbar">
       <div className="min-w-max flex items-center justify-between gap-8 py-2">
-        {(
-          hideMas
-            ? plantillas.filter((p) => p.id !== "mas")
-            : plantillas
-        ).map((plantilla) => (
+        {listaMostrar.map((plantilla) => (
           <TarjetaPlantillaEvento
             key={plantilla.id}
             plantilla={plantilla}

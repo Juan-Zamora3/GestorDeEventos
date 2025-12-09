@@ -1,5 +1,3 @@
-// src/modulos/administradorEventos/componentes/tiposAdminEventos.ts
-
 // Tarjetas de eventos que se muestran en los grids
 export interface EventoCardAdminEventos {
   id: string;
@@ -34,7 +32,26 @@ export interface CampoEvento {
   immutable?: boolean;
 }
 
-export type PerfilId = "participante" | "asesor" | "integrante" | "lider_equipo";
+// 🔹 NUEVO: Info básica del evento para el wizard
+export interface InfoEventoDraft {
+  nombre: string;
+  fechaInicioEvento: string;
+  fechaFinEvento: string;
+  fechaInicioInscripciones: string;
+  fechaFinInscripciones: string;
+  descripcion: string;
+  /**
+   * URL de la imagen de portada del evento en Firebase Storage.
+   * Opcional porque al inicio puede no existir.
+   */
+  imagenPortadaUrl?: string;
+}
+
+export type PerfilId =
+  | "participante"
+  | "asesor"
+  | "integrante"
+  | "lider_equipo";
 
 export interface ParticipantesDraft {
   modo: "individual" | "equipos";
@@ -44,4 +61,13 @@ export interface ParticipantesDraft {
   maxIntegrantes: string;
   seleccion: Record<"asesor" | "lider_equipo", boolean>;
   camposPorPerfil: Record<PerfilId | string, CampoEvento[]>;
+}
+export interface InfoEventoDraft {
+  nombre: string;
+  fechaInicioEvento: string;
+  fechaFinEvento: string;
+  fechaInicioInscripciones: string;
+  fechaFinInscripciones: string;
+  descripcion: string;
+  imagenPortadaUrl?: string; // 👈 IMPORTANTE
 }

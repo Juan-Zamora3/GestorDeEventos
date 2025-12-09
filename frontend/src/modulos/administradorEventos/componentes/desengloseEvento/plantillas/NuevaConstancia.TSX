@@ -1,27 +1,25 @@
+// src/modulos/administradorEventos/componentes/desengloseEvento/constancias/NuevaConstancia.tsx
 import type { FC } from "react";
 
-interface PlantillaItem {
-  id: string;
+type NuevaPlantillaPayload = {
   titulo: string;
   tipo: string;
-  fecha: string;
-  imagen: string;
-}
+  imagen: string; // normalmente la URL del PDF base
+};
 
 interface Props {
-  onCreate: (n: PlantillaItem) => void;
+  onCreate: (nueva: NuevaPlantillaPayload) => void;
 }
 
 const NuevaConstancia: FC<Props> = ({ onCreate }) => {
   const crear = () => {
-    const n: PlantillaItem = {
-      id: `PL${Date.now()}`,
+    const nueva: NuevaPlantillaPayload = {
       titulo: "Nueva Constancia",
       tipo: "Coordinador",
-      fecha: new Date().toLocaleDateString(),
-      imagen: "/Concurso.png",
+      imagen: "/Hackatec2.pdf", // pon aquí tu PDF base de constancia
     };
-    onCreate(n);
+
+    onCreate(nueva);
   };
 
   return (
@@ -36,4 +34,3 @@ const NuevaConstancia: FC<Props> = ({ onCreate }) => {
 };
 
 export default NuevaConstancia;
-

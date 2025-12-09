@@ -1,3 +1,4 @@
+// src/modulos/administradorEventos/componentes/desengloseEvento/IntegrantesTable.tsx
 import type { FC } from "react";
 import { FiMoreVertical } from "react-icons/fi";
 
@@ -9,6 +10,8 @@ export interface IntegranteRow {
   institucion: string;
   correo: string;
   telefono?: string;
+  // opcional: puedes agregar id si viene de Firebase
+  // id?: string;
 }
 
 interface Props {
@@ -17,11 +20,19 @@ interface Props {
   variant?: "full" | "simple";
 }
 
-const IntegrantesTable: FC<Props> = ({ rows, onAction, variant = "full" }) => {
+const IntegrantesTable: FC<Props> = ({
+  rows,
+  onAction,
+  variant = "full",
+}) => {
   const simple = variant === "simple";
   return (
     <div className="overflow-x-auto">
-      <div className={`${simple ? "max-h-[280px]" : "max-h-[360px]"} overflow-y-auto`}> 
+      <div
+        className={`${
+          simple ? "max-h-[280px]" : "max-h-[360px]"
+        } overflow-y-auto`}
+      >
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 bg-white">
             <tr className="text-left text-xs text-slate-500">
@@ -36,12 +47,15 @@ const IntegrantesTable: FC<Props> = ({ rows, onAction, variant = "full" }) => {
                   <th className="px-4 py-2">Teléfono</th>
                 </>
               )}
-              <th className="px-4 py-2"></th>
+              <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {rows.map((r, idx) => (
-              <tr key={idx} className="border-t border-slate-100 text-slate-800">
+              <tr
+                key={idx}
+                className="border-t border-slate-100 text-slate-800"
+              >
                 <td className="px-4 py-2">{r.nombre}</td>
                 <td className="px-4 py-2">{r.apellidoPaterno}</td>
                 <td className="px-4 py-2">{r.apellidoMaterno}</td>
@@ -54,13 +68,26 @@ const IntegrantesTable: FC<Props> = ({ rows, onAction, variant = "full" }) => {
                   </>
                 )}
                 <td className="px-4 py-2 text-right">
-                  <button type="button" onClick={() => onAction?.(idx, "menu")}
-                          className="h-8 w-8 rounded-full hover:bg-slate-100 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => onAction?.(idx, "menu")}
+                    className="h-8 w-8 rounded-full hover:bg-slate-100 flex items-center justify-center"
+                  >
                     <FiMoreVertical />
                   </button>
                 </td>
               </tr>
             ))}
+            {rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={simple ? 5 : 8}
+                  className="px-4 py-4 text-xs text-slate-500 text-center"
+                >
+                  Sin integrantes registrados.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

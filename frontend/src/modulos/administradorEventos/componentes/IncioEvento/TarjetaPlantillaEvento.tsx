@@ -8,16 +8,27 @@ interface Props {
   size?: "normal" | "large";
 }
 
-const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "normal" }) => {
+const TarjetaPlantillaEvento: React.FC<Props> = ({
+  plantilla,
+  onClick,
+  size = "normal",
+}) => {
   const sizeClasses =
     size === "large"
       ? "w-[250px] aspect-[6/4]"
       : "w-[250px] aspect-[6/4]";
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
       className={`
         ${sizeClasses}
         rounded-xl
@@ -27,6 +38,7 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
         transform-gpu transition-all duration-300 hover:scale-[1.05] hover:shadow-xl
         relative flex
         snap-start
+        cursor-pointer
       `}
       style={{ padding: 0 }}
     >
@@ -40,7 +52,7 @@ const TarjetaPlantillaEvento: React.FC<Props> = ({ plantilla, onClick, size = "n
           {plantilla.titulo}
         </span>
       </div>
-    </button>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+// src/modulos/administradorEventos/componentes/desengloseEvento/NavbarEvento.tsx
 import type { FC } from "react";
 import {
   useEffect,
@@ -10,8 +11,12 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiChevronLeft } from "react-icons/fi";
 import { motion } from "framer-motion";
 
+// 🔹 Firebase (OJO: solo 4 niveles hacia arriba)
+import { db } from "../../../../firebase/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+
 interface Props {
-  titulo: string;
+  titulo: string; // título fallback
 }
 
 const tabs = [
@@ -34,6 +39,36 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
   const path = location.pathname.replace(base, "").replace(/^\//, "");
   const activo = path.length === 0 ? "informacion" : path.split("/")[0];
 
+  // 🔹 título dinámico desde Firestore (con fallback al prop)
+  const [tituloEvento, setTituloEvento] = useState<string>(titulo);
+
+  useEffect(() => {
+    const cargarTitulo = async () => {
+      if (!id) return;
+
+      try {
+        const ref = doc(db, "eventos", id);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+
+        const data = snap.data() as any;
+        const info = data.config?.infoEvento ?? data.infoEvento ?? {};
+
+        const nombre: string =
+          info.nombre ??
+          data.nombre ??
+          data.nombre_evento ??
+          titulo;
+
+        setTituloEvento(nombre);
+      } catch (err) {
+        console.error("[NavbarEvento] Error al cargar título del evento:", err);
+      }
+    };
+
+    void cargarTitulo();
+  }, [id, titulo]);
+
   const [mounted, setMounted] = useState(false);
   const [exiting, setExiting] = useState(false);
   useEffect(() => {
@@ -44,7 +79,11 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
   useEffect(() => {
     const onSalir = () => setExiting(true);
     window.addEventListener("admin-eventos:salir", onSalir as EventListener);
-    return () => window.removeEventListener("admin-eventos:salir", onSalir as EventListener);
+    return () =>
+      window.removeEventListener(
+        "admin-eventos:salir",
+        onSalir as EventListener,
+      );
   }, []);
 
   // ---------- refs para el indicador ----------
@@ -70,7 +109,6 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
     const width = b.width - 8;
 
     setIndicator((prev) => {
-      // si ya teníamos barra, hacemos anim de “estirado”
       if (prev.width > 0) {
         const minX = Math.min(prev.left, left);
         const maxX = Math.max(prev.left + prev.width, left + width);
@@ -79,7 +117,6 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
         setGlow(true);
         if (animTimer.current) window.clearTimeout(animTimer.current);
 
-        // primero estiramos
         animTimer.current = window.setTimeout(() => {
           setIndicator({ left, width });
           setGlow(false);
@@ -87,17 +124,14 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
 
         return { left: minX, width: unionW };
       }
-      // primera vez: solo colocamos
       return { left, width };
     });
   }, [activo]);
 
-  // recalcular cuando cambie la pestaña activa
   useLayoutEffect(() => {
     recalcFromActiveTab();
   }, [recalcFromActiveTab]);
 
-  // y cuando cambie el tamaño de la ventana
   useLayoutEffect(() => {
     const onResize = () => recalcFromActiveTab();
     window.addEventListener("resize", onResize);
@@ -108,7 +142,11 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
     <header className="flex-shrink-0">
       <div
         className={`bg-gradient-to-r from-[#192D69] to-[#6581D6] text-white rounded-t-[32px] transform-gpu transition-all duration-700 ${
-          exiting ? "translate-y-6 opacity-0" : mounted ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0"
+          exiting
+            ? "translate-y-6 opacity-0"
+            : mounted
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-6 opacity-0"
         }`}
       >
         {/* encabezado */}
@@ -126,7 +164,9 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
               </button>
             </div>
             <div className="flex items-center justify-center">
-              <h1 className="text-xl sm:text-2xl font-semibold">{titulo}</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold">
+                {tituloEvento}
+              </h1>
             </div>
             <div />
           </div>
@@ -134,11 +174,11 @@ const NavbarEvento: FC<Props> = ({ titulo }) => {
 
         {/* navbar */}
         <nav className="mt-10 px-6 sm:px-10 pb-0">
-  <div
-    ref={navRef}
-    className="relative w-full bg-[#E5E9F6] rounded-2xl px-6 py-4"
-  >
-    <ul className="flex items-center justify-center gap-8 text-sm text-[#5A5F8D]">
+          <div
+            ref={navRef}
+            className="relative w-full bg-[#E5E9F6] rounded-2xl px-6 py-4"
+          >
+            <ul className="flex items-center justify-center gap-8 text-sm text-[#5A5F8D]">
               {tabs.map((t) => {
                 const selected = activo === t.id;
                 return (

@@ -1,5 +1,5 @@
 // src/modulos/administradorEventos/componentes/desengloseEvento/constancias/HistorialEnvioCorreos.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FC, ReactNode } from "react";
 import { motion } from "framer-motion";
 import {
@@ -12,6 +12,16 @@ import {
   FiRefreshCw,
   FiX,
 } from "react-icons/fi";
+import { useParams } from "react-router-dom";
+
+// Firebase
+import { db } from "../../../../../firebase/firebaseConfig";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
 
 interface RegistroEnvio {
   id: string;
@@ -29,50 +39,12 @@ interface Props {
   registros?: RegistroEnvio[];
 }
 
-// Datos de ejemplo mientras conectas backend
-const mock: RegistroEnvio[] = [
-  {
-    id: "1",
-    nombre: "Sofía González",
-    correo: "sofia@example.com",
-    canal: "Correo",
-    asunto: "Constancia",
-    fecha: "2025-12-04 12:32",
-    estado: "Enviado",
-  },
-  {
-    id: "2",
-    nombre: "Santiago Rodríguez",
-    correo: "santi@example.com",
-    canal: "Correo",
-    asunto: "Constancia",
-    fecha: "2025-12-04 12:34",
-    estado: "Fallido",
-  },
-  {
-    id: "3",
-    nombre: "Valentina Martínez",
-    correo: "vale@example.com",
-    canal: "Correo",
-    asunto: "Constancia",
-    fecha: "2025-12-04 12:40",
-    estado: "Pendiente",
-  },
-  {
-    id: "4",
-    nombre: "Sebastián García",
-    correo: "sebas@example.com",
-    canal: "Correo",
-    asunto: "Constancia",
-    fecha: "2025-12-04 12:45",
-    estado: "Enviado",
-  },
-];
-
 const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
-  if (!abierto) return null;
+  const { id: idEvento } = useParams<{ id: string }>();
 
-  const data = registros && registros.length ? registros : mock;
+  const [items, setItems] = useState<RegistroEnvio[]>([]);
+  const [cargando, setCargando] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [busqueda, setBusqueda] = useState("");
   const [canal, setCanal] = useState<"Todos" | "Correo">("Todos");
@@ -80,6 +52,61 @@ const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
     "Todos" | "Enviado" | "Fallido" | "Pendiente"
   >("Todos");
   const [det, setDet] = useState<RegistroEnvio | undefined>(undefined);
+
+  // Si el padre NO pasa registros, nos conectamos a Firestore:
+  useEffect(() => {
+    if (!abierto) return;
+    if (!idEvento) return;
+    if (registros && registros.length) return; // el padre controla los datos
+
+    setCargando(true);
+    setError(null);
+
+    // Ajusta "envios_constancias" al nombre real que uses en tu colección
+    const colRef = collection(db, "eventos", idEvento, "envios_constancias");
+    const q = query(colRef, orderBy("fechaEnvio", "desc"));
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const rows: RegistroEnvio[] = snap.docs.map((d) => {
+          const data = d.data() as any;
+
+          let fechaStr = "";
+          const f = data.fechaEnvio ?? data.fecha;
+          if (f?.toDate) {
+            fechaStr = f.toDate().toLocaleString("es-MX");
+          } else if (typeof f === "string") {
+            fechaStr = f;
+          }
+
+          return {
+            id: d.id,
+            nombre: data.nombre ?? data.nombreCompleto ?? "",
+            correo: data.correo ?? "",
+            canal: (data.canal as "Correo") ?? "Correo",
+            asunto: data.asunto ?? "",
+            fecha: fechaStr,
+            estado: (data.estado as RegistroEnvio["estado"]) ?? "Pendiente",
+          };
+        });
+        setItems(rows);
+        setCargando(false);
+      },
+      (err) => {
+        console.error("[HistorialEnvioCorreos] Error al cargar:", err);
+        setError("No se pudo cargar el historial de envíos.");
+        setCargando(false);
+      },
+    );
+
+    return () => unsub();
+  }, [abierto, idEvento, registros]);
+
+  if (!abierto) return null;
+
+  // Fuente final de datos: prioridad a lo que mande el padre
+  const data: RegistroEnvio[] = registros && registros.length ? registros : items;
 
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -216,88 +243,102 @@ const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
             </div>
 
             {/* Lista de envíos */}
-            {/* Lista de envíos */}
-<div className="flex-1 min-h-0 px-6 pb-5 pt-3">
-  <div className="rounded-2xl bg-[#F9FAFF] border border-slate-100 shadow-inner flex flex-col">
-    <div className="px-4 pt-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-      <span>Envíos</span>
-      <span>{filtrados.length} registro(s)</span>
-    </div>
-
-    {/* Contenedor de ALTO FIJO para la tabla */}
-    <div
-      className="overflow-y-auto px-1 pb-2"
-      style={{
-        maxHeight: "420px",        // 🔹 alto máximo de la tabla
-        minHeight: "260px",        // 🔹 para que no se encoja demasiado con pocos registros
-        scrollbarGutter: "stable" as any,
-      }}
-    >
-      {filtrados.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-xs text-slate-500">
-          No se encontraron envíos con los filtros actuales.
-        </div>
-      ) : (
-        <ul className="divide-y divide-slate-200 text-sm">
-          {filtrados.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-start gap-4 px-3 py-3 hover:bg-white transition-colors rounded-xl"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {r.nombre}
-                </p>
-                <p className="text-xs text-slate-600 truncate">
-                  {r.correo}
-                </p>
-
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+            <div className="flex-1 min-h-0 px-6 pb-5 pt-3">
+              <div className="rounded-2xl bg-[#F9FAFF] border border-slate-100 shadow-inner flex flex-col">
+                <div className="px-4 pt-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                  <span>Envíos</span>
                   <span>
-                    <span className="font-semibold">Canal:</span> {r.canal}
-                  </span>
-                  {r.asunto && (
-                    <span>
-                      <span className="font-semibold">Asunto:</span> {r.asunto}
-                    </span>
-                  )}
-                  <span>
-                    <span className="font-semibold">Fecha:</span> {r.fecha}
+                    {cargando
+                      ? "Cargando..."
+                      : `${filtrados.length} registro(s)`}
                   </span>
                 </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-2">
-                {chipEstado(r.estado)}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDet(r)}
-                    className="h-8 w-8 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center hover:brightness-110"
-                    title="Ver detalle"
-                  >
-                    <FiEye />
-                  </button>
-                  {r.estado !== "Enviado" && (
-                    <button
-                      type="button"
-                      onClick={() => setDet(r)}
-                      className="h-8 w-8 rounded-full bg-[#EEF0FF] text-[#5B4AE5] inline-flex items-center justify-center hover:bg-[#E6E9FF]"
-                      title="Reintentar / Reenviar"
-                    >
-                      <FiRefreshCw />
-                    </button>
+                <div
+                  className="overflow-y-auto px-1 pb-2"
+                  style={{
+                    maxHeight: "420px",
+                    minHeight: "260px",
+                    scrollbarGutter: "stable" as any,
+                  }}
+                >
+                  {error ? (
+                    <div className="h-full flex items-center justify-center text-xs text-rose-600 text-center px-3">
+                      {error}
+                    </div>
+                  ) : cargando ? (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-500">
+                      Cargando historial de envíos...
+                    </div>
+                  ) : filtrados.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-xs text-slate-500 text-center px-3">
+                      No se encontraron envíos con los filtros actuales.
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-slate-200 text-sm">
+                      {filtrados.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-start gap-4 px-3 py-3 hover:bg-white transition-colors rounded-xl"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">
+                              {r.nombre}
+                            </p>
+                            <p className="text-xs text-slate-600 truncate">
+                              {r.correo}
+                            </p>
+
+                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                              <span>
+                                <span className="font-semibold">Canal:</span>{" "}
+                                {r.canal}
+                              </span>
+                              {r.asunto && (
+                                <span>
+                                  <span className="font-semibold">
+                                    Asunto:
+                                  </span>{" "}
+                                  {r.asunto}
+                                </span>
+                              )}
+                              <span>
+                                <span className="font-semibold">Fecha:</span>{" "}
+                                {r.fecha || "—"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            {chipEstado(r.estado)}
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setDet(r)}
+                                className="h-8 w-8 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center hover:brightness-110"
+                                title="Ver detalle"
+                              >
+                                <FiEye />
+                              </button>
+                              {r.estado !== "Enviado" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDet(r)}
+                                  className="h-8 w-8 rounded-full bg-[#EEF0FF] text-[#5B4AE5] inline-flex items-center justify-center hover:bg-[#E6E9FF]"
+                                  title="Reintentar / Reenviar"
+                                >
+                                  <FiRefreshCw />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  </div>
-</div>
-
+            </div>
           </section>
 
           {/* LADO DERECHO: DETALLE */}
@@ -335,7 +376,9 @@ const HistorialEnvioCorreos: FC<Props> = ({ abierto, onCerrar, registros }) => {
                     </div>
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm px-3 py-2">
                       <p className="text-[11px] text-slate-500">Fecha</p>
-                      <p className="text-sm text-slate-800">{det.fecha}</p>
+                      <p className="text-sm text-slate-800">
+                        {det.fecha || "—"}
+                      </p>
                     </div>
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm px-3 py-2 col-span-2">
                       <p className="text-[11px] text-slate-500">Asunto</p>

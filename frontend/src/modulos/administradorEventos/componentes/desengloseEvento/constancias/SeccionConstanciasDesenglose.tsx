@@ -1,6 +1,12 @@
 // src/modulos/administradorEventos/componentes/desengloseEvento/constancias/SeccionConstanciasDesenglose.tsx
 import type { FC } from "react";
-import { useMemo, useState, useRef, useEffect } from "react";
+import {
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiChevronRight,
@@ -9,22 +15,43 @@ import {
   FiSend,
   FiClock,
 } from "react-icons/fi";
+
 import ModalDescargarConstancias from "./ModalDescargarConstancias";
 import ModalEnviarConstancias from "./ModalEnviarConstancias";
 import HistorialEnvioCorreos from "./HistorialEnvioCorreos";
 import ModalImprimirConstancias from "./ModalImprimirConstancias";
 
-interface Persona { id: string; nombre: string }
-interface Categoria { id: string; titulo: string; personas: Persona[] }
+// Firebase
+import { db } from "../../../../../firebase/firebaseConfig";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+} from "firebase/firestore";
 
-const categorias: Categoria[] = [
+interface Persona {
+  id: string;
+  nombre: string;
+}
+interface Categoria {
+  id: string;
+  titulo: string;
+  personas: Persona[];
+}
+
+// 🔹 Mock de respaldo si aún no tienes datos en Firebase
+const categoriasMock: Categoria[] = [
   {
     id: "coordinadores",
     titulo: "Coordinadores",
-    personas: ["Juan Zamora", "Israel Pelayo", "Julie Torres"].map((n, i) => ({
-      id: `C${i + 1}`,
-      nombre: n,
-    })),
+    personas: ["Juan Zamora", "Israel Pelayo", "Julie Torres"].map(
+      (n, i) => ({
+        id: `C${i + 1}`,
+        nombre: n,
+      }),
+    ),
   },
   {
     id: "participantes",
@@ -47,26 +74,155 @@ const categorias: Categoria[] = [
 ];
 
 const SeccionConstanciasDesenglose: FC = () => {
-  const [catId, setCatId] = useState<string>(categorias[0].id);
+  const { id: idEvento } = useParams<{ id: string }>();
+
+  // 🔹 Categorías que se muestran (inicialmente mock, luego Firebase si existe)
+  const [categorias, setCategorias] = useState<Categoria[]>(categoriasMock);
+
   const [seleccionPorCat, setSeleccionPorCat] = useState<
     Record<string, Set<string>>
   >(() => {
     const s: Record<string, Set<string>> = {};
-    categorias.forEach((c) => {
+    categoriasMock.forEach((c) => {
       s[c.id] = new Set(c.personas.map((p) => p.id));
     });
     return s;
   });
+
+  const [catId, setCatId] = useState<string>(categoriasMock[0].id);
   const [index, setIndex] = useState<number>(0);
+
   const [openDescargar, setOpenDescargar] = useState(false);
   const [openEnviar, setOpenEnviar] = useState(false);
   const [openHistorial, setOpenHistorial] = useState(false);
   const [openImprimir, setOpenImprimir] = useState(false);
-   const [archivoUrl] = useState<string | undefined>(undefined);
+
+  // 🔹 URL del PDF de plantilla (evento.{plantillaConstanciaUrl})
+  const [archivoUrl, setArchivoUrl] = useState<string | undefined>(
+    undefined,
+  );
+
+  // ==== CARGAR PARTICIPANTES DESDE FIREBASE ====
+  useEffect(() => {
+    if (!idEvento) return;
+
+    const colRef = collection(db, "eventos", idEvento, "participantes");
+    const q = query(colRef);
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const byCat: Record<string, Categoria> = {};
+
+        snap.forEach((d) => {
+          const data = d.data() as any;
+
+          // ajusta estos nombres de campos a tu estructura real
+          const nombre: string =
+            data.nombreCompleto ?? data.nombre ?? "";
+          if (!nombre) return;
+
+          // intentamos deducir la categoría / rol
+          const catIdRaw: string =
+            data.rolId ??
+            data.rol ??
+            data.tipo ??
+            data.categoria ??
+            "participantes";
+
+          const catTituloRaw: string =
+            data.rolNombre ??
+            data.rol ??
+            data.tipo ??
+            data.categoriaNombre ??
+            data.categoria ??
+            "Participantes";
+
+          const catId = String(catIdRaw);
+          const catTitulo = String(catTituloRaw);
+
+          if (!byCat[catId]) {
+            byCat[catId] = {
+              id: catId,
+              titulo: catTitulo,
+              personas: [],
+            };
+          }
+
+          byCat[catId].personas.push({
+            id: d.id,
+            nombre,
+          });
+        });
+
+        const lista = Object.values(byCat);
+
+        if (lista.length === 0) {
+          // Si no hay nada en Firebase, usamos los mocks
+          setCategorias(categoriasMock);
+          setSeleccionPorCat(() => {
+            const s: Record<string, Set<string>> = {};
+            categoriasMock.forEach((c) => {
+              s[c.id] = new Set(c.personas.map((p) => p.id));
+            });
+            return s;
+          });
+          setCatId(categoriasMock[0].id);
+          setIndex(0);
+        } else {
+          setCategorias(lista);
+
+          // reset selección: todos los de cada categoría seleccionados
+          setSeleccionPorCat(() => {
+            const s: Record<string, Set<string>> = {};
+            lista.forEach((c) => {
+              s[c.id] = new Set(c.personas.map((p) => p.id));
+            });
+            return s;
+          });
+
+          setCatId((prevId) =>
+            lista.some((c) => c.id === prevId) ? prevId : lista[0].id,
+          );
+          setIndex(0);
+        }
+      },
+      (err) => {
+        console.error(
+          "[Constancias] Error al leer participantes desde Firebase:",
+          err,
+        );
+      },
+    );
+
+    return () => unsub();
+  }, [idEvento]);
+
+  // ==== CARGAR URL DE PLANTILLA DESDE EL EVENTO ====
+  useEffect(() => {
+    if (!idEvento) return;
+
+    const refEvento = doc(db, "eventos", idEvento);
+    getDoc(refEvento)
+      .then((snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data() as any;
+        // ajusta el nombre de este campo a tu doc de evento
+        if (typeof data.plantillaConstanciaUrl === "string") {
+          setArchivoUrl(data.plantillaConstanciaUrl);
+        }
+      })
+      .catch((err) => {
+        console.error(
+          "[Constancias] Error al cargar plantilla del evento:",
+          err,
+        );
+      });
+  }, [idEvento]);
 
   const actual = useMemo(
-    () => categorias.find((c) => c.id === catId)!,
-    [catId],
+    () => categorias.find((c) => c.id === catId) ?? categorias[0],
+    [categorias, catId],
   );
 
   // dirección animación tabs (izq / der)
@@ -127,21 +283,17 @@ const SeccionConstanciasDesenglose: FC = () => {
   };
 
   const buildPdfSrc = (pdfUrl?: string) => {
-  const base =
-    pdfUrl && pdfUrl.trim() !== "" ? pdfUrl : "/Hackatec2.pdf";
+    const base =
+      pdfUrl && pdfUrl.trim() !== "" ? pdfUrl : "/Hackatec2.pdf";
 
-  
-  const zoom = "60"; // ajusta 100–130 según qué tan grande quieras verlo
+    const zoom = "60"; // ajusta 60–130 según el tamaño que quieras
+    return `${base}#page=1&zoom=${zoom}`;
+  };
 
-  return `${base}#page=1&zoom=${zoom}`;
-};
-  // === PLANTILLA PARA PREVIEW / ENVÍO ===
-  // Por ahora está fija, cámbiala luego por la URL guardada en BD
- const basePdfUrl = archivoUrl; // en el futuro puedes usar item.imagen si viene un PDF
-  const pdfSrc = buildPdfSrc(basePdfUrl);
+  // En el futuro puedes manejar varias plantillas por rol/categoría
+  const pdfSrc = buildPdfSrc(archivoUrl);
 
-
-  // misma idea que antes para generar imagen rápida
+  // misma idea que antes para generar imagen rápida (placeholder)
   const generarImagen = (nombre: string) => {
     const canvas = document.createElement("canvas");
     canvas.width = 800;
@@ -150,7 +302,6 @@ const SeccionConstanciasDesenglose: FC = () => {
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // franja decorativa derecha
     ctx.fillStyle = "#c62828";
     ctx.fillRect(760, 0, 40, canvas.height);
 
@@ -175,8 +326,6 @@ const SeccionConstanciasDesenglose: FC = () => {
     a.click();
   };
 
- 
-
   const imprimir = () => {
     setOpenImprimir(true);
   };
@@ -192,7 +341,7 @@ const SeccionConstanciasDesenglose: FC = () => {
           >
             <FiPrinter /> Imprimir
           </button>
-         
+
           <button
             type="button"
             onClick={() => setOpenHistorial(true)}
@@ -261,7 +410,7 @@ const SeccionConstanciasDesenglose: FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-1 mt-1">
+          <div className="flex items-center justify_between mb-1 mt-1">
             <p className="text-xs font-semibold text-slate-700">
               {actual.titulo}
             </p>
@@ -274,7 +423,6 @@ const SeccionConstanciasDesenglose: FC = () => {
             </button>
           </div>
 
-          {/* Lista SIN scrollbar interno */}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={`lista-${catId}`}
@@ -305,6 +453,11 @@ const SeccionConstanciasDesenglose: FC = () => {
                   </label>
                 );
               })}
+              {actual.personas.length === 0 && (
+                <p className="text-[11px] text-slate-500 px-2 py-1">
+                  Sin personas registradas en esta categoría.
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
         </aside>
@@ -312,92 +465,76 @@ const SeccionConstanciasDesenglose: FC = () => {
         {/* ===== LADO DERECHO: PREVIEW CON PLANTILLA ===== */}
         <main className="rounded-2xl border border-slate-280 bg-white p-4">
           <div className="flex items-center justify-between mb-2">
-    <p className="text-xs font-semibold text-slate-900">Previsualización</p>
-  </div>
-  <div className="flex items-center justify-between mb-2">
-    
-    <button
-          type="button"
-          onClick={anterior}
-          className="h-7 w-7 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center"
-        >
-          ‹
-        </button>
-        <p className="text-[10px] text-slate-700 bg-white/70 px-2 py-[2px] rounded-full">
-          Constancia {total ? index + 1 : 0} de {total}
-        </p>
-        <button
-          type="button"
-          onClick={siguiente}
-          className="h-7 w-7 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center"
-        >
-          <FiChevronRight />
-        </button>
-  </div>
-
-  <div className="flex items-center justify-center">
-    <div
-      className="
-        relative 
-        w-[640px] 
-        aspect-[3/4]
-        bg-[#F9FAFF]
-        rounded-xl 
-        border border-slate-200 
-        overflow-hidden
-      "
-    >
-      {/* Fondo de la constancia (puede ser PNG o JPG generado de tu PDF) */}
-     <iframe
-  src={pdfSrc}
-  title="Plantilla constancia"
-  className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
-/>
-
-      {personaActual ? (
-        <>
-          {/* Aquí iría el texto fijo que será parte de la constancia si quieres */}
-          {/* Título / texto fijo (opcional) */}
-          {/* 
-          <div
-            className="absolute left-1/2 w-[70%] text-center"
-            style={{ top: "47%", transform: "translateX(-50%)" }}
-          >
-            <p className="text-base font-semibold tracking-[0.15em] text-slate-700">
-              CONSTANCIA
+            <p className="text-xs font-semibold text-slate-900">
+              Previsualización
             </p>
           </div>
-          */}
-
-          {/* Nombre pegado a la constancia */}
-          <div
-            className="absolute left-1/2 w-[70%] text-center"
-            style={{
-              top: "34%",              // Mueve esto arriba/abajo hasta que quede exacto
-              transform: "translateX(-55%)",
-            }}
-          >
-            <p className="text-lg font-semibold text-[#1F2933] tracking-wide">
-              {personaActual.nombre}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={anterior}
+              className="h-7 w-7 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify_center"
+            >
+              ‹
+            </button>
+            <p className="text-[10px] text-slate-700 bg-white/70 px-2 py-[2px] rounded-full">
+              Constancia {total ? index + 1 : 0} de {total}
             </p>
+            <button
+              type="button"
+              onClick={siguiente}
+              className="h-7 w-7 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white inline-flex items-center justify-center"
+            >
+              <FiChevronRight />
+            </button>
           </div>
-        </>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-sm text-slate-500">
-            Selecciona personas para previsualizar
-          </p>
-        </div>
-      )}
-      <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
-        
-      </div>
-    </div>
-  </div>
 
-  <div className="mt-1" />
-</main>
+          <div className="flex items-center justify-center">
+            <div
+              className="
+                relative 
+                w-[640px] 
+                aspect-[3/4]
+                bg-[#F9FAFF]
+                rounded-xl 
+                border border-slate-200 
+                overflow-hidden
+              "
+            >
+              {/* Fondo de la constancia (PDF incrustado) */}
+              <iframe
+                src={pdfSrc}
+                title="Plantilla constancia"
+                className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
+              />
 
+              {personaActual ? (
+                <>
+                  {/* Nombre sobre la plantilla */}
+                  <div
+                    className="absolute left-1/2 w-[70%] text-center"
+                    style={{
+                      top: "34%",
+                      transform: "translateX(-55%)",
+                    }}
+                  >
+                    <p className="text-lg font-semibold text-[#1F2933] tracking-wide">
+                      {personaActual.nombre}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-sm text-slate-500">
+                    Selecciona personas para previsualizar
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-1" />
+        </main>
       </div>
 
       {/* ===== MODALES ===== */}
@@ -418,7 +555,9 @@ const SeccionConstanciasDesenglose: FC = () => {
           categorias={categorias}
           onCerrar={() => setOpenImprimir(false)}
           onAceptar={(cfg) => {
-            void cfg;
+            // aquí luego puedes llamar a tu backend/Cloud Function
+            // para mandar a impresión según cfg
+            console.log("[Imprimir constancias] Config:", cfg);
             setOpenImprimir(false);
           }}
         />
@@ -428,7 +567,8 @@ const SeccionConstanciasDesenglose: FC = () => {
           abierto={openEnviar}
           onCerrar={() => setOpenEnviar(false)}
           onAceptar={(cfg) => {
-            void cfg;
+            // aquí luego llamas a tu función de envío por correo
+            console.log("[Enviar constancias] Config:", cfg);
             setOpenEnviar(false);
           }}
         />

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
+
 import type { EventoCard } from "../componentes/tiposAdminGeneral";
+
 import SeccionInformacionDesenglose from "../componentes/desengloseEvento/informacion/SeccionInformacionDesenglose";
 import SeccionEquiposDesenglose from "../componentes/desengloseEvento/equipos/SeccionEquiposDesenglose";
 import SeccionParticipantesDesenglose from "../componentes/desengloseEvento/participantes/SeccionParticipantesDesenglose";
@@ -31,20 +33,23 @@ type TabId = (typeof tabs)[number]["id"];
 export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const { evento: eventoFromState } = (location.state || {}) as LocationState;
 
-  // Fallback por si entran directo a la URL
-  const evento: EventoCard =
-    eventoFromState || ({
-      id: 0,
-      titulo: "Detalle de evento",
-      fechaInicio: "",
-      fechaFin: "",
-      equipos: "",
-      personas: "",
-      imagen: "/login-campus.png",
-      activo: true,
-    } as EventoCard);
+  // Fallback por si entran directo a la URL sin state
+  const fallbackEvento: EventoCard = {
+    id: "sin-id",
+    titulo: "Detalle de evento",
+    tipo: "Concurso",
+    fechaInicio: "",
+    fechaFin: "",
+    equipos: "",
+    personas: "",
+    imagen: "/login-campus.png",
+    activo: true,
+  };
+
+  const evento: EventoCard = eventoFromState ?? fallbackEvento;
 
   const [tabActiva, setTabActiva] = useState<TabId>("informacion");
 
@@ -54,6 +59,7 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
       <header className="mt-4 mb-4 rounded-2xl bg-gradient-to-r from-sky-700 to-blue-600 text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => navigate(-1)}
             className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
           >
@@ -61,7 +67,7 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
           </button>
           <div className="flex flex-col">
             <span className="text-xs uppercase tracking-wide opacity-80">
-              Concurso
+              {evento.tipo ?? "Evento"}
             </span>
             <h1 className="text-sm sm:text-base font-semibold">
               {evento.titulo}
@@ -69,8 +75,11 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
           </div>
         </div>
 
-        {/* Aquí luego puedes poner botón "Exportar a Excel" como en el diseño */}
-        <button className="hidden sm:inline-flex items-center rounded-full bg-white/15 px-4 py-1 text-xs font-medium hover:bg-white/25">
+        {/* Botón derecho (por ahora solo placeholder) */}
+        <button
+          type="button"
+          className="hidden sm:inline-flex items-center rounded-full bg-white/15 px-4 py-1 text-xs font-medium hover:bg-white/25"
+        >
           Exportar a Excel
         </button>
       </header>
@@ -103,7 +112,7 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
         </ul>
       </nav>
 
-      {/* Contenido por pestaña: ahora renderizamos las secciones reales del desenglose */}
+      {/* Contenido por pestaña */}
       {tabActiva === "informacion" && <SeccionInformacionDesenglose />}
       {tabActiva === "equipos" && <SeccionEquiposDesenglose />}
       {tabActiva === "participantes" && <SeccionParticipantesDesenglose />}
@@ -112,12 +121,6 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
       {tabActiva === "plantillas" && <SeccionPlantillasDesenglose />}
       {tabActiva === "constancias" && <SeccionConstanciasDesenglose />}
       {tabActiva === "formulario" && <SeccionFormularioDesenglose />}
-
-      {tabActiva === "formulario" && (
-        <section className="bg-white rounded-2xl shadow-sm p-4 text-sm text-slate-700">
-          Aquí va la vista de <strong>Formulario</strong>.
-        </section>
-      )}
     </div>
   );
 };

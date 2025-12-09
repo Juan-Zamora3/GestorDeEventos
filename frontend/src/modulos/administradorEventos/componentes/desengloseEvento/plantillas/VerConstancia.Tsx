@@ -1,19 +1,13 @@
+// src/modulos/administradorEventos/componentes/desengloseEvento/constancias/VerConstancia.tsx
 import type {
   FC,
   DragEvent,
   CSSProperties,
   MouseEvent as ReactMouseEvent,
-} from "react";
-import { useRef, useState, useEffect,  } from "react";
+} from "react"; 
+import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-
-interface PlantillaItem {
-  id: string;
-  titulo: string;
-  tipo: string;
-  fecha: string;
-  imagen: string;
-}
+import type { PlantillaItem } from "./SeccionPlantillasDesenglose";
 
 interface Props {
   open: boolean;
@@ -26,10 +20,7 @@ interface Props {
 const buildPdfSrc = (pdfUrl?: string) => {
   const base =
     pdfUrl && pdfUrl.trim() !== "" ? pdfUrl : "/Hackatec2.pdf";
-
-  
-  const zoom = "60"; // ajusta 100–130 según qué tan grande quieras verlo
-
+  const zoom = "60";
   return `${base}#page=1&zoom=${zoom}`;
 };
 
@@ -50,7 +41,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [texto, setTexto] = useState<string>("");
 
-  // === POSICIÓN ARRASTRABLE DEL TEXTO EN LA VISTA PREVIA ===
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [textPos, setTextPos] = useState<{ x: number; y: number }>({
     x: 50,
@@ -64,10 +54,8 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
   } | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  // (sin efecto de sincronización para evitar cascadas de render)
-
-  // Limpia blob cuando se destruye el componente
   useEffect(() => {
+    // limpiar blob cuando se destruye el componente
     return () => {
       if (archivoUrl && archivoUrl.startsWith("blob:")) {
         URL.revokeObjectURL(archivoUrl);
@@ -91,13 +79,11 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as HTMLElement;
 
-        // Chip {Nombre}, {Equipo}, etc.
         if (el.dataset.var) {
           pieces.push(`{${el.dataset.var}}`);
           return;
         }
 
-        // <br>
         if (el.tagName === "BR") {
           pieces.push("\n");
           return;
@@ -190,7 +176,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     setTexto(serialize());
   };
 
-  const startDrag = (e: DragEvent<HTMLButtonElement>, v: string) => {
+  const startDragChip = (e: DragEvent<HTMLButtonElement>, v: string) => {
     const token = `{${v}}`;
     e.dataTransfer.setData("text/plain", token);
     e.dataTransfer.setData("text", token);
@@ -234,8 +220,13 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     onGuardar({ titulo: formNombre, tipo: formTipo });
   };
 
-  // --- PDF y estilos para vista previa ----
-  const basePdfUrl = archivoUrl; // en el futuro puedes usar item.imagen si viene un PDF
+  // PDF base: si el item trae una URL a PDF en `imagen`, la usamos
+  const basePdfUrl =
+    archivoUrl ||
+    (item.imagen?.toLowerCase().endsWith(".pdf")
+      ? item.imagen
+      : undefined);
+
   const pdfSrc = buildPdfSrc(basePdfUrl);
 
   const previewTextStyle: CSSProperties = {
@@ -255,7 +246,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
     wordBreak: "break-word",
   };
 
-  // === handlers para ARRASTRAR el texto en la vista previa ===
   const handleTextMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -302,7 +292,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
       onDragOverCapture={guardDropOutsideEditor}
       onDropCapture={guardDropOutsideEditor}
     >
-      {/* Modal fijo: NO crece, solo hace scroll interno */}
       <div className="w-[1600px] max-w-[98vw] h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         <header className="px-8 py-5 bg-gradient-to-r from-[#3A62D6] to-[#5B4AE5] text-white flex items-center justify-between flex-none">
           <h2 className="text-lg font-semibold">
@@ -350,7 +339,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
 
             <div className="mb-4">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Archivo PDF
+                Archivo PDF (vista previa local)
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -386,6 +375,11 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                   {archivoNombre}
                 </p>
               )}
+              <p className="text-[10px] text-slate-400 mt-1">
+                Nota: por ahora este archivo solo se usa para la vista previa
+                local. Para almacenarlo de forma definitiva se debe integrar
+                Firebase Storage más adelante.
+              </p>
             </div>
 
             <div className="mb-4">
@@ -406,7 +400,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                     type="button"
                     draggable
                     onDragStart={(e) =>
-                      startDrag(e, v === "Añadir" ? "Variable" : v)
+                      startDragChip(e, v === "Añadir" ? "Variable" : v)
                     }
                     onClick={() =>
                       insertVariable(v === "Añadir" ? "Variable" : v)
@@ -448,7 +442,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
             </div>
           </div>
 
-          {/* CENTRO: vista previa del PDF + texto ARRASTRABLE */}
+          {/* CENTRO: vista previa del PDF + texto arrastrable */}
           <div className="flex-1 h-full overflow-y-auto min-w-0">
             <div className="border rounded-xl bg-[#F9FAFF] h-full flex items-center justify-center p-4">
               <div
@@ -464,7 +458,6 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                   title="Vista previa PDF"
                   className="absolute inset-0 w-full h-full rounded-xl pointer-events-none"
                 />
-                {/* Texto draggable encima del PDF */}
                 <div
                   onMouseDown={handleTextMouseDown}
                   style={{
@@ -569,7 +562,7 @@ const VerConstancia: FC<Props> = ({ open, item, onClose, onGuardar }) => {
                     onChange={(e) => setVarItalic(e.target.checked)}
                     className="h-4 w-4 accent-[#5B4AE5]"
                   />
-                  Italica
+                  Itálica
                 </label>
                 <label className="flex items-center gap-2">
                   <input

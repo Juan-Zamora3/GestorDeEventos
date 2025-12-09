@@ -31,6 +31,24 @@ const formatearHora = (d: Date) => {
   return `${hh}:${mm}`;
 };
 
+const parseAnyToDate = (raw: any): Date | null => {
+  if (!raw) return null;
+  if (raw instanceof Timestamp) return raw.toDate();
+  if (raw.toDate && typeof raw.toDate === "function") {
+    try {
+      return raw.toDate();
+    } catch {
+      // ignore
+    }
+  }
+  if (typeof raw === "string") {
+    const d = new Date(raw);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  if (raw instanceof Date) return raw;
+  return null;
+};
+
 // Hash de contraseña con Web Crypto (SHA-256)
 async function hashPassword(plain: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -49,28 +67,76 @@ export async function obtenerEventosAdminGeneral(): Promise<EventoCard[]> {
   snap.forEach((docSnap) => {
     const data = docSnap.data() as any;
 
-    const fi =
-      data.fecha_inicio instanceof Timestamp
-        ? data.fecha_inicio.toDate()
-        : null;
-    const ff =
-      data.fecha_fin instanceof Timestamp
-        ? data.fecha_fin.toDate()
-        : null;
+    // Config avanzada (para eventos nuevos)
+    const info =
+      data.config?.infoEvento ??
+      data.infoEvento ??
+      {};
+
+    // Fechas (compatibles con estructuras viejas y nuevas)
+    const fechaInicioRaw =
+      data.fecha_inicio ??
+      data.fecha_inicio_evento ??
+      info.fechaInicioEvento;
+
+    const fechaFinRaw =
+      data.fecha_fin ??
+      data.fecha_fin_evento ??
+      info.fechaFinEvento;
+
+    const fi = parseAnyToDate(fechaInicioRaw);
+    const ff = parseAnyToDate(fechaFinRaw);
+
+    // Totales de equipos / personas (varias posibles fuentes)
+    const equiposCount =
+      data.total_equipos ??
+      data.totalEquipos ??
+      data.numEquipos ??
+      info.totalEquipos;
+
+    const personasCount =
+      data.total_personas ??
+      data.totalParticipantes ??
+      data.numParticipantes ??
+      info.totalParticipantes;
+
+    // Imagen portada
+    const imagenPortada =
+      data.imagen_portada ??
+      info.imagenPortadaUrl ??
+      data.imagen ??
+      "/login-campus.png";
+
+    // Tipo de evento (texto corto)
+    const tipoEvento =
+      data.tipo_evento ??
+      data.tipoEvento ??
+      info.tipoEvento ??
+      "Concurso";
+
+    // Estado / activo
+    const estadoRaw = (data.estado ?? "ACTIVO").toString().toUpperCase();
+    const activoFlag =
+      typeof data.activo === "boolean"
+        ? data.activo
+        : estadoRaw === "ACTIVO";
 
     eventos.push({
       id: (data.id_evento ?? docSnap.id) as string,
-      titulo: data.titulo ?? "Sin título",
-      tipo: data.tipo_evento ?? "Concurso",
+      titulo: data.titulo ?? info.nombre ?? "Sin título",
+      tipo: tipoEvento,
       fechaInicio: fi ? formatearFecha(fi) : "",
       fechaFin: ff ? formatearFecha(ff) : "",
-      equipos: data.total_equipos ? `${data.total_equipos} equipos` : "—",
-      personas: data.total_personas
-        ? `${data.total_personas} personas`
-        : "—",
-      imagen: data.imagen_portada ?? "/login-campus.png",
-      activo:
-        (data.estado ?? "ACTIVO").toString().toUpperCase() === "ACTIVO",
+      equipos:
+        typeof equiposCount === "number"
+          ? `${equiposCount} equipo${equiposCount === 1 ? "" : "s"}`
+          : "—",
+      personas:
+        typeof personasCount === "number"
+          ? `${personasCount} persona${personasCount === 1 ? "" : "s"}`
+          : "—",
+      imagen: imagenPortada,
+      activo: activoFlag,
     });
   });
 
@@ -249,7 +315,7 @@ export async function obtenerHistorialAdminGeneral(): Promise<
     const fecha =
       data.fecha_hora instanceof Timestamp
         ? data.fecha_hora.toDate()
-        : null;
+        : parseAnyToDate(data.fecha_hora);
 
     res.push({
       id: docSnap.id,
