@@ -1,4 +1,3 @@
-// src/modulos/administradorEventos/componentes/desengloseEvento/SeccionInformacionDesenglose.tsx
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -10,7 +9,34 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
+  collection,
+  getDocs,
 } from "firebase/firestore";
+
+// 🔹 Utilidad para fechas (convierte Timestamp / {seconds,nanoseconds} a string)
+import { toDisplayDate } from "../../../../../utils/fechasFirestore";
+
+// Defaults de ejemplo (solo se usan si no hay datos en BD)
+const DEFAULT_NOMBRE = "Concurso de robótica junior";
+const DEFAULT_DESCRIPCION =
+  "El Concurso de Robótica es un evento académico donde estudiantes compiten diseñando, construyendo y programando robots para superar retos técnicos.";
+const DEFAULT_FECHA_INICIO_EVENTO = "16/12/2024";
+const DEFAULT_FECHA_FIN_EVENTO = "17/12/2024";
+const DEFAULT_FECHA_INICIO_INSCRIPCIONES = "08/12/2024";
+const DEFAULT_FECHA_FIN_INSCRIPCIONES = "15/12/2024";
+
+const formatFecha = (raw: any): string => {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  return toDisplayDate(raw);
+};
+
+interface EquipoPreview {
+  id: string;
+  nombreEquipo: string;
+  institucion: string;
+  fechaRegistro: string;
+}
 
 const SeccionInformacionDesenglose: FC = () => {
   const navigate = useNavigate();
@@ -24,27 +50,34 @@ const SeccionInformacionDesenglose: FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Campos del evento
-  const [nombreEvento, setNombreEvento] = useState("Concurso de robótica junior");
-  const [descripcion, setDescripcion] = useState(
-    "El Concurso de Robótica es un evento académico donde estudiantes compiten diseñando, construyendo y programando robots para superar retos técnicos.",
+  const [nombreEvento, setNombreEvento] = useState(DEFAULT_NOMBRE);
+  const [descripcion, setDescripcion] = useState(DEFAULT_DESCRIPCION);
+  const [fechaInicioEvento, setFechaInicioEvento] = useState(
+    DEFAULT_FECHA_INICIO_EVENTO,
   );
-  const [fechaInicioEvento, setFechaInicioEvento] = useState("16/12/2024");
-  const [fechaFinEvento, setFechaFinEvento] = useState("17/12/2024");
-  const [fechaInicioInscripciones, setFechaInicioInscripciones] =
-    useState("08/12/2024");
-  const [fechaFinInscripciones, setFechaFinInscripciones] =
-    useState("15/12/2024");
+  const [fechaFinEvento, setFechaFinEvento] = useState(
+    DEFAULT_FECHA_FIN_EVENTO,
+  );
+  const [fechaInicioInscripciones, setFechaInicioInscripciones] = useState(
+    DEFAULT_FECHA_INICIO_INSCRIPCIONES,
+  );
+  const [fechaFinInscripciones, setFechaFinInscripciones] = useState(
+    DEFAULT_FECHA_FIN_INSCRIPCIONES,
+  );
 
-  // Métricas (mock + posibilidad de llenar desde BD)
-  const [equiposRegistrados, setEquiposRegistrados] = useState<number>(108);
-  const [individuales, setIndividuales] = useState<number>(298);
-  const [asesores, setAsesores] = useState<number>(108);
-  const [personal, setPersonal] = useState<number>(150);
+  // Métricas (ahora se llenan desde BD)
+  const [equiposRegistrados, setEquiposRegistrados] = useState<number>(0);
+  const [individuales, setIndividuales] = useState<number>(0);
+  const [asesores, setAsesores] = useState<number>(0);
+  const [personal, setPersonal] = useState<number>(0);
+
+  // Tabla de previsualización de equipos
+  const [equiposPreview, setEquiposPreview] = useState<EquipoPreview[]>([]);
 
   const totalInvolucrados =
     equiposRegistrados + individuales + asesores + personal;
 
-  // 🔹 Cargar datos del evento desde Firestore
+  // 🔹 Cargar datos del evento + equipos desde Firestore
   useEffect(() => {
     const cargar = async () => {
       if (!idEvento) {
@@ -55,40 +88,130 @@ const SeccionInformacionDesenglose: FC = () => {
         setCargando(true);
         setError(null);
 
+        // -------- Documento principal del evento --------
         const eventoRef = doc(db, "eventos", idEvento);
         const snap = await getDoc(eventoRef);
 
         if (!snap.exists()) {
-          setError("No se encontró información del evento en la base de datos.");
+          setError(
+            "No se encontró información del evento en la base de datos.",
+          );
           setCargando(false);
           return;
         }
 
         const data = snap.data() as any;
+        const info = data.config?.infoEvento ?? data.infoEvento ?? {};
 
-        if (data.nombre_evento) setNombreEvento(data.nombre_evento);
-        if (data.descripcion) setDescripcion(data.descripcion);
+        const nombre =
+          info.nombre ??
+          data.nombre_evento ??
+          data.nombre ??
+          DEFAULT_NOMBRE;
+        setNombreEvento(nombre);
 
-        if (data.fecha_inicio_evento)
-          setFechaInicioEvento(data.fecha_inicio_evento);
-        if (data.fecha_fin_evento)
-          setFechaFinEvento(data.fecha_fin_evento);
-        if (data.fecha_inicio_inscripciones)
-          setFechaInicioInscripciones(data.fecha_inicio_inscripciones);
-        if (data.fecha_fin_inscripciones)
-          setFechaFinInscripciones(data.fecha_fin_inscripciones);
+        const desc =
+          info.descripcion ?? data.descripcion ?? DEFAULT_DESCRIPCION;
+        setDescripcion(desc);
 
-        // Métricas opcionales
-        if (typeof data.equiposRegistrados === "number")
+        const rawFechaInicioEvento =
+          info.fechaInicioEvento ??
+          data.fecha_inicio_evento ??
+          data.fechaInicioEvento;
+        if (rawFechaInicioEvento) {
+          setFechaInicioEvento(formatFecha(rawFechaInicioEvento));
+        }
+
+        const rawFechaFinEvento =
+          info.fechaFinEvento ??
+          data.fecha_fin_evento ??
+          data.fechaFinEvento;
+        if (rawFechaFinEvento) {
+          setFechaFinEvento(formatFecha(rawFechaFinEvento));
+        }
+
+        const rawFechaInicioInscripciones =
+          info.fechaInicioInscripciones ??
+          data.fecha_inicio_inscripciones ??
+          data.fechaInicioInscripciones;
+        if (rawFechaInicioInscripciones) {
+          setFechaInicioInscripciones(
+            formatFecha(rawFechaInicioInscripciones),
+          );
+        }
+
+        const rawFechaFinInscripciones =
+          info.fechaFinInscripciones ??
+          data.fecha_fin_inscripciones ??
+          data.fechaFinInscripciones;
+        if (rawFechaFinInscripciones) {
+          setFechaFinInscripciones(
+            formatFecha(rawFechaFinInscripciones),
+          );
+        }
+
+        // Métricas: si ya las guardas en el doc, las usamos.
+        if (typeof data.equiposRegistrados === "number") {
           setEquiposRegistrados(data.equiposRegistrados);
-        if (typeof data.individuales === "number")
+        }
+        if (typeof data.individuales === "number") {
           setIndividuales(data.individuales);
-        if (typeof data.asesores === "number")
+        }
+        if (typeof data.asesores === "number") {
           setAsesores(data.asesores);
-        if (typeof data.personal === "number")
+        }
+        if (typeof data.personal === "number") {
           setPersonal(data.personal);
+        }
+
+        // -------- Colección de equipos para previsualización --------
+        const equiposRef = collection(db, "eventos", idEvento, "equipos");
+        const equiposSnap = await getDocs(equiposRef);
+
+        const listaEquipos: EquipoPreview[] = [];
+        equiposSnap.forEach((docSnap) => {
+          const d = docSnap.data() as any;
+
+          const nombreEquipo: string =
+            d.nombreEquipo ??
+            d.nombre_equipo ??
+            d.nombre ??
+            "Equipo sin nombre";
+
+          const institucion: string =
+            d.institucion ??
+            d.instituto ??
+            d.escuela ??
+            "Institución no especificada";
+
+          const rawFecha =
+            d.fechaRegistro ??
+            d.fecha_registro ??
+            d.creadoEn ??
+            d.createdAt ??
+            null;
+
+          const fechaRegistro = rawFecha ? formatFecha(rawFecha) : "";
+
+          listaEquipos.push({
+            id: docSnap.id,
+            nombreEquipo,
+            institucion,
+            fechaRegistro,
+          });
+        });
+
+        setEquiposPreview(listaEquipos);
+
+        // Si no traías equiposRegistrados en el doc, usamos el tamaño real
+        if (typeof data.equiposRegistrados !== "number") {
+          setEquiposRegistrados(listaEquipos.length);
+        }
       } catch (e) {
-        console.error("[SeccionInformacionDesenglose] Error al cargar evento:", e);
+        console.error(
+          "[SeccionInformacionDesenglose] Error al cargar evento:",
+          e,
+        );
         setError("Ocurrió un error al cargar los datos del evento.");
       } finally {
         setCargando(false);
@@ -129,12 +252,10 @@ const SeccionInformacionDesenglose: FC = () => {
   };
 
   const handleClickEditar = async () => {
-    // Si no estaba en edición, solo entra en modo edición
     if (!editing) {
       setEditing(true);
       return;
     }
-    // Si ya estaba editando y vuelves a dar clic -> Guardar
     await guardarCambios();
     setEditing(false);
   };
@@ -163,7 +284,9 @@ const SeccionInformacionDesenglose: FC = () => {
   if (cargando) {
     return (
       <section className="px-6 sm:px-10 py-6">
-        <p className="text-sm text-slate-500">Cargando información del evento...</p>
+        <p className="text-sm text-slate-500">
+          Cargando información del evento...
+        </p>
       </section>
     );
   }
@@ -198,14 +321,15 @@ const SeccionInformacionDesenglose: FC = () => {
       </div>
 
       {error && (
-        <p className="mb-4 text-xs font-semibold text-rose-600">{error}</p>
+        <p className="mb-4 text-xs font-semibold text-rose-600">
+          {error}
+        </p>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Izquierda: imagen + descripcion + fechas */}
         <div className="lg:col-span-1 space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-            {/* Podrías luego leer 'posterUrl' desde Firestore */}
             <img
               src="/Concurso.png"
               alt="Poster"
@@ -316,7 +440,9 @@ const SeccionInformacionDesenglose: FC = () => {
         <div className="lg:col-span-2 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-[11px] text-slate-500">Equipos registrados</p>
+              <p className="text-[11px] text-slate-500">
+                Equipos registrados
+              </p>
               <p className="text-xl font-semibold text-slate-900 mt-1">
                 {equiposRegistrados}
               </p>
@@ -344,9 +470,12 @@ const SeccionInformacionDesenglose: FC = () => {
           <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <div className="bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] px-4 py-3 text-white">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold">Previsualización</p>
+                <p className="text-xs font-semibold">
+                  Previsualización
+                </p>
                 <span className="text-sm">
-                  Involucrados en total: <strong>{totalInvolucrados}</strong>
+                  Involucrados en total:{" "}
+                  <strong>{totalInvolucrados}</strong>
                 </span>
               </div>
               <div className="mt-3 flex items-center gap-4">
@@ -369,26 +498,33 @@ const SeccionInformacionDesenglose: FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    "Los Tralarietes",
-                    "Minions",
-                    "Correcaminos #2",
-                    "Sadboys",
-                    "Chema++",
-                    "Minions",
-                    "Correcaminos #2",
-                    "Sadboys",
-                    "Chema++",
-                    "Sadboys",
-                  ].map((n, idx) => (
-                    <tr key={idx} className="border-t border-slate-100">
-                      <td className="px-4 py-2 text-slate-800">{n}</td>
-                      <td className="px-4 py-2 text-slate-600">
-                        Instituto Tecnológico Superior de Puerto Peñasco
+                  {equiposPreview.length === 0 ? (
+                    <tr className="border-t border-slate-100">
+                      <td
+                        className="px-4 py-3 text-slate-500 text-xs"
+                        colSpan={3}
+                      >
+                        Aún no hay equipos registrados para este evento.
                       </td>
-                      <td className="px-4 py-2 text-slate-600">9/12/2024</td>
                     </tr>
-                  ))}
+                  ) : (
+                    equiposPreview.map((eq) => (
+                      <tr
+                        key={eq.id}
+                        className="border-t border-slate-100"
+                      >
+                        <td className="px-4 py-2 text-slate-800">
+                          {eq.nombreEquipo}
+                        </td>
+                        <td className="px-4 py-2 text-slate-600">
+                          {eq.institucion}
+                        </td>
+                        <td className="px-4 py-2 text-slate-600">
+                          {eq.fechaRegistro || "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -408,7 +544,8 @@ const SeccionInformacionDesenglose: FC = () => {
               Eliminar evento
             </h3>
             <p className="text-sm text-slate-600 mb-6">
-              Esta acción eliminará el evento. ¿Estás seguro de continuar?
+              Esta acción eliminará el evento. ¿Estás seguro de
+              continuar?
             </p>
             <div className="flex items-center justify-end gap-3">
               <button

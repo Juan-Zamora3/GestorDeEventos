@@ -1,4 +1,5 @@
 // src/modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos.tsx
+
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +23,9 @@ import {
   orderBy,
   query as fsQuery,
 } from "firebase/firestore";
+
+// 🔹 Utilidad para fechas (la que te di arriba)
+import { toDisplayDate } from "../../../utils/fechasFirestore";
 
 export const PaginaListaEventosAdminEventos: React.FC = () => {
   const [animDown, setAnimDown] = useState(false);
@@ -82,22 +86,13 @@ export const PaginaListaEventosAdminEventos: React.FC = () => {
             data.nombre_evento ??
             "Evento sin nombre";
 
-          const formatFecha = (raw: any): string => {
-            if (!raw) return "";
-            if (raw.toDate) {
-              const dt = raw.toDate() as Date;
-              return dt.toLocaleDateString("es-MX");
-            }
-            if (typeof raw === "string") return raw;
-            return "";
-          };
-
-          const fechaInicio = formatFecha(
+          const fechaInicio = toDisplayDate(
             info.fechaInicioEvento ??
               data.fechaInicioEvento ??
               data.fecha_inicio_evento,
           );
-          const fechaFin = formatFecha(
+
+          const fechaFin = toDisplayDate(
             info.fechaFinEvento ??
               data.fechaFinEvento ??
               data.fecha_fin_evento,
