@@ -16,7 +16,7 @@ import SeccionPersonalDesengloseAdminGeneral from "./modulos/administradorGenera
 import SeccionAsistenciasDesengloseAdminGeneral from "./modulos/administradorGeneral/componentes/desengloseEvento/asistencias/SeccionAsistenciasDesenglose";
 import SeccionPlantillasDesengloseAdminGeneral from "./modulos/administradorGeneral/componentes/desengloseEvento/plantillas/SeccionPlantillasDesenglose";
 import SeccionConstanciasDesengloseAdminGeneral from "./modulos/administradorGeneral/componentes/desengloseEvento/constancias/SeccionConstanciasDesenglose";
-import SeccionFormularioDesengloseAdminGeneral from "./modulos/administradorGeneral/componentes/desengloseEvento/formulario/SeccionFormularioDesenglose";
+
 
 /* ========== ADMIN EVENTOS ========== */
 import LayoutAdminEventos from "./modulos/administradorEventos/paginas/LayoutAdminEventos";
@@ -64,7 +64,6 @@ function App() {
           <Route path="asistencias" element={<SeccionAsistenciasDesengloseAdminGeneral />} />
           <Route path="plantillas" element={<SeccionPlantillasDesengloseAdminGeneral />} />
           <Route path="constancias" element={<SeccionConstanciasDesengloseAdminGeneral />} />
-          <Route path="formulario" element={<SeccionFormularioDesengloseAdminGeneral />} />
         </Route>
         <Route path="usuarios" element={<PaginaUsuariosAdminGeneral />} />
         <Route path="historial" element={<PaginaHistorialAdminGeneral />} />

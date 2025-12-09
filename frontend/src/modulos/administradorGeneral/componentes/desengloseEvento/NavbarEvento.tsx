@@ -22,7 +22,6 @@ const tabs = [
   { id: "asistencias", label: "Asistencias" },
   { id: "plantillas", label: "Plantillas" },
   { id: "constancias", label: "Constancias" },
-  { id: "formulario", label: "Formulario" },
 ];
 
 const NavbarEvento: FC<Props> = ({ titulo }) => {

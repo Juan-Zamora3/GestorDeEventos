@@ -1,10 +1,10 @@
 import type { FC } from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 
 const SeccionInformacionDesenglose: FC = () => {
   const [openDelete, setOpenDelete] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editing] = useState(false);
   const [descripcion, setDescripcion] = useState(
     "El Concurso de Robótica es un evento académico donde estudiantes compiten diseñando, construyendo y programando robots para superar retos técnicos."
   );
@@ -12,33 +12,17 @@ const SeccionInformacionDesenglose: FC = () => {
   const [fechaFinEvento, setFechaFinEvento] = useState("17/12/2024");
   const [fechaInicioInscripciones, setFechaInicioInscripciones] = useState("08/12/2024");
   const [fechaFinInscripciones, setFechaFinInscripciones] = useState("15/12/2024");
-  const navigate = useNavigate();
 
-  const handleConfirmDelete = () => {
-    const ok = window.confirm("¿Estás seguro de que deseas eliminar este evento?");
-    if (!ok) return;
-    navigate("admin-general/auditoria");
-  };
+
+  
 
   return (
     <section className="px-6 sm:px-10 py-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-slate-900">Concurso de robotica junior</h2>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEditing((v) => !v)}
-            className={`px-4 py-2 rounded-full text-xs font-semibold shadow-sm transform-gpu transition hover:-translate-y-[1px] hover:scale-[1.02] ${editing ? "bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
-          >
-            {editing ? "Guardar" : "Editar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpenDelete(true)}
-            className="px-4 py-2 rounded-full bg-rose-600 text-white text-xs font-semibold shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"
-          >
-            Eliminar Evento
-          </button>
+          
+         
         </div>
       </div>
 
@@ -181,8 +165,6 @@ const SeccionInformacionDesenglose: FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpenDelete(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-[92%] max-w-md p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Eliminar evento</h3>
-            <p className="text-sm text-slate-600 mb-6">Esta acción eliminará el evento. ¿Estás seguro de continuar?</p>
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
@@ -191,13 +173,7 @@ const SeccionInformacionDesenglose: FC = () => {
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 rounded-full bg-rose-600 text-white text-xs font-semibold"
-              >
-                Eliminar
-              </button>
+              
             </div>
           </div>
         </div>

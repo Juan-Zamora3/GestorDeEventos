@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiUsers, FiUser } from "react-icons/fi";
-import ModalAgregarEquipo from "./ModalCrearEquipo";
 import ModalDetalleEquipo from "./ModalDetalleEquipo";
 
 interface Equipo {
@@ -37,10 +36,10 @@ const equiposMock: Equipo[] = [
 ];
 
 const SeccionEquiposDesenglose: React.FC = () => {
-  const [showAgregar, setShowAgregar] = useState(false);
+ 
   const [showDetalle, setShowDetalle] = useState(false);
   const [busqueda, setBusqueda] = useState("");
-  const [seleccionando, setSeleccionando] = useState(false);
+  const [seleccionando,] = useState(false);
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
   const [pagados, setPagados] = useState<Record<string, boolean>>({});
 
@@ -50,7 +49,7 @@ const SeccionEquiposDesenglose: React.FC = () => {
       id: String(i + 1),
     }));
   }, []);
-  const [lista, setLista] = useState<Equipo[]>(baseLista);
+  const [lista] = useState<Equipo[]>(baseLista);
 
   const filtrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -86,31 +85,7 @@ const SeccionEquiposDesenglose: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSeleccionando((s) => !s)}
-              className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
-            >
-              {seleccionando ? "Cancelar selección" : "Seleccionar"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (seleccion.size === 0) return;
-                setLista((prev) => prev.filter((e) => !seleccion.has(e.id)));
-                setSeleccion(new Set());
-              }}
-              className="px-5 py-2.5 rounded-full bg-[#F2F3FB] text-sm font-semibold text-slate-700 shadow-sm transform-gpu transition hover:bg-[#E9ECF9] hover:-translate-y-[1px] hover:scale-[1.02]"
-            >
-              Eliminar
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAgregar(true)}
-              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-sm font-semibold text-white shadow-sm transform-gpu transition hover:brightness-110 hover:-translate-y-[1px] hover:scale-[1.02]"
-            >
-              Nuevo Equipo
-            </button>
+            
           </div>
         </div>
 
@@ -180,9 +155,7 @@ const SeccionEquiposDesenglose: React.FC = () => {
             <button type="button" onClick={() => setSeleccion(new Set(filtrados.map((e) => e.id)))} className="px-4 py-2 rounded-full bg-[#F2F3FB] text-xs font-semibold text-slate-700">Seleccionar todo</button>
           </div>
         )}
-      </div>
-
-      {showAgregar && <ModalAgregarEquipo onClose={() => setShowAgregar(false)} />}
+      </div>    
       {showDetalle && <ModalDetalleEquipo onClose={() => setShowDetalle(false)} />}
     </>
   );
