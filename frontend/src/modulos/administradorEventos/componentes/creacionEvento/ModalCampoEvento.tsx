@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
 import { FiTrash2 } from "react-icons/fi";
-import type { CampoEvento } from "../tiposAdminEventos";
+import type { CampoEvento } from "../../../../api/adminEventosApi";
 
 interface Props {
   abierto: boolean;

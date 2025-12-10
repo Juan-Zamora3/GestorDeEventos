@@ -10,7 +10,7 @@ import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEvent
 import type {
   Tiempo,
   AjusteConfig,
-} from "../../../../../api/eventosAdminEventosApi";
+} from "../../../../../api/adminEventosApi";
 
 const SeccionAjusteEvento: FC = () => {
   const navigate = useNavigate();

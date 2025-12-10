@@ -16,7 +16,7 @@ import {
   camposExtraPersonal,
 } from "../../../../../api/eventosAdminEventosApi";
 
-type RolUI = RolEvento & { activo?: boolean };
+type RolUI = RolPersonalConfig & { activo?: boolean };
 
 const SeccionPersonal: FC = () => {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ const SeccionPersonal: FC = () => {
   // Modal rol
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   const [modalModo, setModalModo] = useState<"crear" | "editar">("crear");
-  const [rolEditando, setRolEditando] = useState<RolEvento | undefined>(
+  const [rolEditando, setRolEditando] = useState<RolPersonalConfig | undefined>(
     undefined,
   );
 
@@ -79,7 +79,7 @@ const SeccionPersonal: FC = () => {
     setModalAbierto(true);
   };
 
-  const abrirEditar = (rol: RolEvento) => {
+  const abrirEditar = (rol: RolPersonalConfig) => {
     setModalModo("editar");
     setRolEditando(rol);
     setModalAbierto(true);
@@ -93,7 +93,7 @@ const SeccionPersonal: FC = () => {
   const generarCampoId = () =>
     `campo-${Math.random().toString(36).slice(2, 8)}`;
 
-  const manejarGuardar = (data: RolEvento) => {
+  const manejarGuardar = (data: RolPersonalConfig) => {
     if (modalModo === "crear") {
       const nuevo: RolUI = {
         id: generarId(),

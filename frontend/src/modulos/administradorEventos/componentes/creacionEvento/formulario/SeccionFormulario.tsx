@@ -9,7 +9,7 @@ import ModalPreguntaFormulario, {
   type TipoCampo,
   type PreguntaForm,
 } from "./ModalPreguntaFormulario";
-import type { CampoEvento } from "../../tiposAdminEventos";
+import type { CampoEvento } from "../../../../../api/adminEventosApi";
 import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 
 const genId = () => `preg-${Math.random().toString(36).slice(2, 8)}`;
