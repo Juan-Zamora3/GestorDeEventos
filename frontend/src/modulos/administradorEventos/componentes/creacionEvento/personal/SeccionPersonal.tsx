@@ -8,15 +8,13 @@ import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import ModalRolPersonal from "./ModalRolPersonal";
 import ModalCampoEvento from "../ModalCampoEvento";
 
+import type { RolEvento, CampoEvento } from "../../tiposAdminEventos";
+import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
+
 import {
   camposBasePersonal,
   camposExtraPersonal,
 } from "../../../../../api/eventosAdminEventosApi";
-import type {
-  CampoEvento,
-  RolPersonalConfig,
-} from "../../../../../api/adminEventosApi";
-import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 
 type RolUI = RolPersonalConfig & { activo?: boolean };
 
