@@ -3,6 +3,7 @@ import { db } from "../firebase/firebaseConfig";
 import {
   collection,
   getDocs,
+  getDoc,
   Timestamp,
   doc,
   deleteDoc,
@@ -141,6 +142,61 @@ export async function obtenerEventosAdminGeneral(): Promise<EventoCard[]> {
   });
 
   return eventos;
+}
+
+export async function obtenerEventoAdminGeneralPorId(
+  id: string,
+): Promise<EventoCard | null> {
+  const ref = doc(db, "eventos", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const data = snap.data() as any;
+
+  const info = data.config?.infoEvento ?? data.infoEvento ?? {};
+
+  const fechaInicioRaw =
+    data.fecha_inicio ?? data.fecha_inicio_evento ?? info.fechaInicioEvento;
+  const fechaFinRaw =
+    data.fecha_fin ?? data.fecha_fin_evento ?? info.fechaFinEvento;
+
+  const fi = parseAnyToDate(fechaInicioRaw);
+  const ff = parseAnyToDate(fechaFinRaw);
+
+  const equiposCount =
+    data.total_equipos ?? data.totalEquipos ?? data.numEquipos ?? info.totalEquipos;
+  const personasCount =
+    data.total_personas ??
+    data.totalParticipantes ??
+    data.numParticipantes ??
+    info.totalParticipantes;
+
+  const imagenPortada =
+    data.imagen_portada ?? info.imagenPortadaUrl ?? data.imagen ?? "/login-campus.png";
+
+  const tipoEvento =
+    data.tipo_evento ?? data.tipoEvento ?? info.tipoEvento ?? "Concurso";
+
+  const estadoRaw = (data.estado ?? "ACTIVO").toString().toUpperCase();
+  const activoFlag =
+    typeof data.activo === "boolean" ? data.activo : estadoRaw === "ACTIVO";
+
+  return {
+    id: (data.id_evento ?? snap.id) as string,
+    titulo: data.titulo ?? info.nombre ?? "Sin título",
+    tipo: tipoEvento,
+    fechaInicio: fi ? formatearFecha(fi) : "",
+    fechaFin: ff ? formatearFecha(ff) : "",
+    equipos:
+      typeof equiposCount === "number"
+        ? `${equiposCount} equipo${equiposCount === 1 ? "" : "s"}`
+        : "—",
+    personas:
+      typeof personasCount === "number"
+        ? `${personasCount} persona${personasCount === 1 ? "" : "s"}`
+        : "—",
+    imagen: imagenPortada,
+    activo: activoFlag,
+  };
 }
 
 // ================== USUARIOS ADMIN X EVENTO ==================
