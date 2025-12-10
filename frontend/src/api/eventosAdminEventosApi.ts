@@ -93,7 +93,7 @@ export type PlantillaEvento = {
   nombrePlantilla: string;
   tipo: "concurso" | "foro" | "curso" | "robotica" | "otro";
   coverUrl: string;
-  config: Omit<ConfigEvento, "infoEvento">;
+  config: ConfigEvento;
   createdAt: any;
   createdBy?: {
     uid?: string;
@@ -101,6 +101,17 @@ export type PlantillaEvento = {
     correo?: string;
   };
 };
+
+const coverPorTipo: Record<PlantillaEvento["tipo"], string> = {
+  concurso: "/Concurso.png",
+  foro: "/Foro.png",
+  curso: "/Cursos.png",
+  robotica: "/Robotica.png",
+  otro: "/EventoBlanco.png",
+};
+
+export const obtenerCoverPorTipo = (tipo: PlantillaEvento["tipo"]): string =>
+  coverPorTipo[tipo] ?? coverPorTipo.otro;
 
 /**
  * AUDITORÍA
@@ -189,8 +200,14 @@ export async function guardarPlantillaEvento(
   const plantillaDoc = await addDoc(colRef, {
     nombrePlantilla: datos.nombrePlantilla,
     tipo: datos.tipo,
-    coverUrl: datos.coverUrl,
+    coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
+      // No persistimos la imagen de portada del paso de información;
+      // las plantillas usan un ícono por tipo o el que defina el usuario.
+      infoEvento: {
+        ...configActual.infoEvento,
+        imagenPortadaUrl: null,
+      },
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
     },
@@ -221,8 +238,46 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       id: d.id,
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
-      coverUrl: data.coverUrl ?? "/Concurso.png",
-      config: data.config,
+      coverUrl:
+        data.coverUrl ||
+        coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
+        "/EventoBlanco.png",
+      config: data.config ?? {
+        infoEvento: {
+          nombre: "",
+          descripcion: "",
+          fechaInicioEvento: "",
+          fechaFinEvento: "",
+          fechaInicioInscripciones: "",
+          fechaFinInscripciones: "",
+          imagenPortadaUrl: null,
+        },
+        ajuste: {
+          caracteristicas: {
+            asistencia_qr: true,
+            confirmacion_pago: false,
+            envio_correo: true,
+            asistencia_tiempos: false,
+          },
+          envioQR: "correo",
+          costoInscripcion: "",
+          tiempos: [],
+        },
+        participantes: {
+          modo: "individual",
+          maxParticipantes: "",
+          maxEquipos: "",
+          minIntegrantes: "1",
+          maxIntegrantes: "5",
+          seleccion: { asesor: false, lider_equipo: false },
+          camposPorPerfil: {
+            participante: [],
+            asesor: [],
+            integrante: [],
+            lider_equipo: [],
+          },
+        },
+      },
       createdAt: data.createdAt,
       createdBy: data.createdBy,
     };
@@ -230,6 +285,13 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
 
   // Puedes añadir aquí una plantilla "en blanco" fija si quieres
   return items;
+}
+
+export async function eliminarPlantillaEvento(
+  plantillaId: string,
+): Promise<void> {
+  const ref = doc(db, "plantillasEvento", plantillaId);
+  await deleteDoc(ref);
 }
 
 /**

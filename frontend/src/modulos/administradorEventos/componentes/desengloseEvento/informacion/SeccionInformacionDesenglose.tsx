@@ -13,6 +13,10 @@ import {
   actualizarInfoEvento,
   eliminarEvento,
 } from "../../../../../api/eventosAdminEventosApi";
+import type {
+  AjusteConfig,
+  ParticipantesDraft,
+} from "../../../../../api/eventosAdminEventosApi";
 
 const SeccionInformacionDesenglose: FC = () => {
   const navigate = useNavigate();
@@ -36,6 +40,10 @@ const SeccionInformacionDesenglose: FC = () => {
     useState("");
 
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
+
+  const [ajusteConfig, setAjusteConfig] = useState<AjusteConfig | null>(null);
+  const [participantesConfig, setParticipantesConfig] =
+    useState<ParticipantesDraft | null>(null);
 
   // Métricas
   const [equiposRegistrados, setEquiposRegistrados] = useState<number>(0);
@@ -73,6 +81,9 @@ const SeccionInformacionDesenglose: FC = () => {
         );
         setFechaFinInscripciones(cfg.infoEvento.fechaFinInscripciones ?? "");
         setPosterUrl(cfg.infoEvento.imagenPortadaUrl ?? "/Concurso.png");
+
+        setAjusteConfig(cfg.ajuste ?? null);
+        setParticipantesConfig(cfg.participantes ?? null);
 
         // Métricas desde subcolecciones
         const [equiposSnap, participantesSnap, personalSnap] =
@@ -270,6 +281,160 @@ const SeccionInformacionDesenglose: FC = () => {
           </div>
         </div>
       </div>
+
+      {(ajusteConfig || participantesConfig) && (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+          <h3 className="text-base font-semibold text-slate-900">
+            Configuración capturada en el wizard
+          </h3>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm text-slate-700">
+            <div className="rounded-xl border border-slate-100 bg-[#F9FAFF] p-3">
+              <p className="text-xs font-semibold text-slate-600 mb-2">
+                Ajustes y reglas
+              </p>
+              {ajusteConfig ? (
+                <div className="space-y-2">
+                  <ul className="space-y-1 text-xs">
+                    <li>
+                      • Asistencia con QR: {" "}
+                      <strong>{
+                        ajusteConfig.caracteristicas.asistencia_qr
+                          ? "Habilitada"
+                          : "Deshabilitada"
+                      }</strong>
+                    </li>
+                    <li>
+                      • Confirmación de pago: {" "}
+                      <strong>{
+                        ajusteConfig.caracteristicas.confirmacion_pago
+                          ? "Requerida"
+                          : "No requerida"
+                      }</strong>
+                    </li>
+                    <li>
+                      • Envío de correo: {" "}
+                      <strong>{
+                        ajusteConfig.caracteristicas.envio_correo
+                          ? "Activo"
+                          : "Desactivado"
+                      }</strong>
+                    </li>
+                    <li>
+                      • Control por tiempos: {" "}
+                      <strong>{
+                        ajusteConfig.caracteristicas.asistencia_tiempos
+                          ? "Configurado"
+                          : "Sin control"
+                      }</strong>
+                    </li>
+                    <li>
+                      • Envío de QR por: {" "}
+                      <strong>{ajusteConfig.envioQR}</strong>
+                    </li>
+                    <li>
+                      • Costo de inscripción: {" "}
+                      <strong>
+                        {ajusteConfig.costoInscripcion
+                          ? `$${ajusteConfig.costoInscripcion}`
+                          : "Gratuito"}
+                      </strong>
+                    </li>
+                  </ul>
+
+                  {ajusteConfig.tiempos?.length ? (
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-slate-600 mb-1">
+                        Tiempos configurados
+                      </p>
+                      <ul className="text-xs text-slate-700 space-y-1">
+                        {ajusteConfig.tiempos.map((t) => (
+                          <li key={t.id} className="flex items-center gap-2">
+                            <span className="font-semibold">{t.nombre}:</span>
+                            <span>
+                              {t.inicio} - {t.fin}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500">
+                      Sin horarios definidos en el wizard.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  No hay ajustes guardados en este evento.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-100 bg-[#F9FAFF] p-3">
+              <p className="text-xs font-semibold text-slate-600 mb-2">
+                Participantes y formulario
+              </p>
+              {participantesConfig ? (
+                <div className="space-y-2 text-xs">
+                  <p>
+                    • Modo de registro: <strong>{participantesConfig.modo}</strong>
+                  </p>
+                  <p>
+                    • Cupo máximo individual: {" "}
+                    <strong>{participantesConfig.maxParticipantes || "Sin límite"}</strong>
+                  </p>
+                  {participantesConfig.modo === "equipos" && (
+                    <>
+                      <p>
+                        • Máx. equipos: <strong>{participantesConfig.maxEquipos || "Sin límite"}</strong>
+                      </p>
+                      <p>
+                        • Integrantes por equipo: <strong>{participantesConfig.minIntegrantes}</strong> a {" "}
+                        <strong>{participantesConfig.maxIntegrantes}</strong>
+                      </p>
+                    </>
+                  )}
+
+                  <p>
+                    • Selecciones obligatorias: {" "}
+                    <strong>
+                      {[
+                        participantesConfig.seleccion.asesor && "Asesor",
+                        participantesConfig.seleccion.lider_equipo && "Líder de equipo",
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "Ninguna"}
+                    </strong>
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {Object.entries(participantesConfig.camposPorPerfil || {}).map(
+                      ([perfil, campos]) => (
+                        <div
+                          key={perfil}
+                          className="rounded-lg bg-white border border-slate-200 px-3 py-2"
+                        >
+                          <p className="text-[11px] font-semibold text-slate-600 capitalize">
+                            {perfil.replace("_", " ")}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            {campos.length} campo(s) configurados
+                          </p>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  No hay reglas de participantes almacenadas.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación de eliminación */}
       {openDelete && (

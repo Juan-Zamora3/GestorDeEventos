@@ -1,5 +1,5 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import {
   type ConfigEvento,
   crearEventoDesdeWizard,
   guardarPlantillaEvento,
+  obtenerCoverPorTipo,
 } from "../../../api/eventosAdminEventosApi";
 
 // 🔹 Tipos exportados para otros componentes del wizard
@@ -42,7 +43,11 @@ export type CrearEventoOutletContext = {
   onGuardarPlantilla: () => Promise<void>;
 };
 
-type NavState = { slideIn?: boolean; plantillaId?: string } | null;
+type NavState = {
+  slideIn?: boolean;
+  plantillaId?: string;
+  plantillaConfig?: Partial<ConfigEvento> | null;
+} | null;
 
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const location = useLocation();
@@ -53,6 +58,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const [exiting, setExiting] = useState(false);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [procesando, setProcesando] = useState(false);
+  const plantillaAplicadaRef = useRef(false);
 
   const exitTimer = useRef<number | undefined>(undefined);
   void exitTimer;
@@ -160,6 +166,27 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     setExiting(true);
   };
 
+  /**
+   * Si venimos desde la galería de plantillas aplicamos la config al wizard
+   * (solo una vez en el primer render para no sobrescribir cambios del usuario).
+   */
+  useEffect(() => {
+    if (plantillaAplicadaRef.current) return;
+
+    const state = location.state as NavState;
+    const plantillaConfig = state?.plantillaConfig;
+
+    if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
+      ...prev,
+      ...plantillaConfig.infoEvento,
+    }));
+    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
+    if (plantillaConfig?.participantes)
+      setParticipantes(plantillaConfig.participantes);
+
+    if (plantillaConfig) plantillaAplicadaRef.current = true;
+  }, [location.state]);
+
   /** Obtiene la config completa actual del wizard */
   const obtenerConfigActual = (): ConfigEvento => ({
     infoEvento: {
@@ -222,16 +249,26 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       );
       if (!nombrePlantilla) return;
 
-      const tipo = window.prompt(
+      const tipo = (window.prompt(
         'Tipo de plantilla (concurso, foro, curso, robotica, otro):',
         "concurso",
-      ) as any;
+      ) || "otro") as any;
+
+      const coverSugerido = obtenerCoverPorTipo(tipo as any);
+      const coverPersonalizado = window.prompt(
+        "URL de imagen de portada para la plantilla (opcional):",
+        coverSugerido,
+      );
+
+      const coverElegido = coverPersonalizado?.trim()
+        ? coverPersonalizado.trim()
+        : coverSugerido;
 
       await guardarPlantillaEvento(
         {
           nombrePlantilla,
-          tipo: tipo || "otro",
-          coverUrl: cfg.infoEvento.imagenPortadaUrl || "/Concurso.png",
+          tipo: (tipo as any) || "otro",
+          coverUrl: coverElegido,
         },
         cfg,
         {
