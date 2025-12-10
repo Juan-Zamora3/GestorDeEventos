@@ -93,7 +93,7 @@ export type PlantillaEvento = {
   nombrePlantilla: string;
   tipo: "concurso" | "foro" | "curso" | "robotica" | "otro";
   coverUrl: string;
-  config: Omit<ConfigEvento, "infoEvento">;
+  config: ConfigEvento;
   createdAt: any;
   createdBy?: {
     uid?: string;
@@ -191,6 +191,8 @@ export async function guardarPlantillaEvento(
     tipo: datos.tipo,
     coverUrl: datos.coverUrl,
     config: {
+      // Se guarda la configuración completa del wizard, incluida la portada
+      infoEvento: configActual.infoEvento,
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
     },
@@ -222,7 +224,42 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
       coverUrl: data.coverUrl ?? "/Concurso.png",
-      config: data.config,
+      config: data.config ?? {
+        infoEvento: {
+          nombre: "",
+          descripcion: "",
+          fechaInicioEvento: "",
+          fechaFinEvento: "",
+          fechaInicioInscripciones: "",
+          fechaFinInscripciones: "",
+          imagenPortadaUrl: data.coverUrl ?? "/Concurso.png",
+        },
+        ajuste: {
+          caracteristicas: {
+            asistencia_qr: true,
+            confirmacion_pago: false,
+            envio_correo: true,
+            asistencia_tiempos: false,
+          },
+          envioQR: "correo",
+          costoInscripcion: "",
+          tiempos: [],
+        },
+        participantes: {
+          modo: "individual",
+          maxParticipantes: "",
+          maxEquipos: "",
+          minIntegrantes: "1",
+          maxIntegrantes: "5",
+          seleccion: { asesor: false, lider_equipo: false },
+          camposPorPerfil: {
+            participante: [],
+            asesor: [],
+            integrante: [],
+            lider_equipo: [],
+          },
+        },
+      },
       createdAt: data.createdAt,
       createdBy: data.createdBy,
     };
