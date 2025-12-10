@@ -2,13 +2,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
+
 import FilaPlantillasRapidas from "../componentes/IncioEvento/FilaPlantillasRapidas";
 import TarjetaPlantillaEvento from "../componentes/IncioEvento/TarjetaPlantillaEvento";
+
 import type { PlantillaEvento } from "../../../api/eventosAdminEventosApi";
 import {
   obtenerPlantillasEvento,
   eliminarPlantillaEvento,
-  crearPersonalPlantillaPorDefecto, // 👈 IMPORT NUEVO
+  crearPersonalPlantillaPorDefecto,
 } from "../../../api/eventosAdminEventosApi";
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
@@ -48,7 +50,6 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
     tipo: "otro",
     coverUrl: "/evento-blanco.png",
     config: {
-      // config mínima; el wizard la rellenará
       infoEvento: {
         nombre: "",
         descripcion: "",
@@ -83,7 +84,6 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
           lider_equipo: [],
         },
       },
-      // 👇 AQUÍ ESTABA DANDO ERROR POR NO ESTAR IMPORTADA LA FUNCIÓN
       personal: crearPersonalPlantillaPorDefecto(),
     },
     createdAt: null,
@@ -111,7 +111,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
         plantillaConfig: {
           ajuste: plantilla.config?.ajuste,
           participantes: plantilla.config?.participantes,
-          personal: plantilla.config?.personal, // opcional, por si luego lo usas
+          personal: plantilla.config?.personal,
         },
       },
     });

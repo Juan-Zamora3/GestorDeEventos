@@ -1,13 +1,16 @@
 // src/modulos/administradorEventos/componentes/creacionEvento/SeccionPersonal.tsx
 
-import { useEffect, useState } from "react";
 import type { FC } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import ModalRolPersonal from "./ModalRolPersonal";
 import ModalCampoEvento from "../ModalCampoEvento";
+
 import type { RolEvento, CampoEvento } from "../../tiposAdminEventos";
-import { type CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
+import type { CrearEventoOutletContext } from "../../paginas/PaginaCrearEventoAdminEventos";
+
 import {
   camposBasePersonal,
   camposExtraPersonal,
@@ -22,6 +25,7 @@ const SeccionPersonal: FC = () => {
 
   const roles = personal.roles as RolUI[];
   const camposPorRol = personal.camposPorRol;
+
   const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(() =>
     roles.find((r) => r.activo)?.id ?? roles[0]?.id,
   );
@@ -122,7 +126,7 @@ const SeccionPersonal: FC = () => {
   const manejarEliminar = (id: string) => {
     setPersonal((prev) => {
       const nuevos = prev.roles.filter((r) => r.id !== id);
-      const { [id]: _, ...rest } = prev.camposPorRol;
+      const { [id]: _omit, ...rest } = prev.camposPorRol;
 
       if (selectedRoleId === id) {
         const siguiente = nuevos.find((r) => r.activo) ?? nuevos[0] ?? undefined;

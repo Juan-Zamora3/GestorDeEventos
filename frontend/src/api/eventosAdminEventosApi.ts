@@ -1,516 +1,291 @@
-// src/api/eventosAdminEventosApi.ts
+ // src/api/eventosAdminEventosApi.ts
+// API y tipos compartidos del módulo Administrador de Eventos (Firebase/Firestore).
+
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
-  serverTimestamp,
+  getDocs,
+  addDoc,
   updateDoc,
   deleteDoc,
-  getDocs,
-  query,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
-/**
- * TIPOS BASE DEL WIZARD
- * =====================
- */
+// Tipos del frontend (no los duplicamos, solo los reusamos)
+import type {
+  AjusteConfig,
+  ParticipantesDraft,
+  CampoEvento,
+  PersonalConfig,
+} from "../modulos/administradorEventos/tiposAdminEventos";
 
-export type Tiempo = {
+import type { InfoEventoDraft } from "../modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
+
+// Reexportamos para que otros archivos puedan importar desde aquí
+export type { AjusteConfig, ParticipantesDraft };
+
+// ---------------------------------------------------------
+// Tipos para plantillas de evento
+// ---------------------------------------------------------
+
+export interface PlantillaEvento {
   id: string;
-  nombre: string;
-  inicio: string; // HH:mm
-  fin: string; // HH:mm
-};
-
-export type AjusteConfig = {
-  caracteristicas: {
-    asistencia_qr: boolean;
-    confirmacion_pago: boolean;
-    envio_correo: boolean;
-    asistencia_tiempos: boolean;
+  nombrePlantilla: string;
+  tipo: string;
+  coverUrl: string | null;
+  config?: {
+    infoEvento: InfoEventoDraft;
+    ajuste: AjusteConfig;
+    participantes: ParticipantesDraft;
+    personal: PersonalConfig;
   };
-  envioQR: "correo" | "ninguno";
-  costoInscripcion: string;
-  tiempos: Tiempo[];
-};
-
-export type CampoEvento = {
-  id: string;
-  nombre: string;
-  tipo: "texto" | "email" | "telefono" | "opciones" | string;
-  immutable?: boolean;
-};
-
-export type RolPersonalConfig = {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  activo?: boolean;
-};
-
-export type PersonalConfig = {
-  roles: RolPersonalConfig[];
-  camposPorRol: Record<string, CampoEvento[]>;
-};
-
-export type ParticipantesDraft = {
-  modo: "individual" | "equipos";
-  maxParticipantes: string;
-  maxEquipos: string;
-  minIntegrantes: string;
-  maxIntegrantes: string;
-  seleccion: {
-    asesor: boolean;
-    lider_equipo: boolean;
+  createdAt: Date | null;
+  createdBy?: {
+    uid: string;
+    nombre: string;
+    correo: string;
   };
-  camposPorPerfil: {
-    participante: CampoEvento[];
-    asesor: CampoEvento[];
-    integrante: CampoEvento[];
-    lider_equipo: CampoEvento[];
-  };
-};
+}
 
-/** Config de información general del evento (solo este evento) */
-export type InfoEventoConfig = {
-  nombre: string;
-  descripcion: string;
-  fechaInicioEvento: string; // "YYYY-MM-DD"
-  fechaFinEvento: string;
-  fechaInicioInscripciones: string;
-  fechaFinInscripciones: string;
-  imagenPortadaUrl?: string | null;
-};
-
-const crearInfoEventoPlantillaVacia = (): InfoEventoConfig => ({
-  nombre: "",
-  descripcion: "",
-  fechaInicioEvento: "",
-  fechaFinEvento: "",
-  fechaInicioInscripciones: "",
-  fechaFinInscripciones: "",
-  imagenPortadaUrl: null,
-});
-
-const crearAjustePlantillaPorDefecto = (): AjusteConfig => ({
-  caracteristicas: {
-    asistencia_qr: true,
-    confirmacion_pago: false,
-    envio_correo: true,
-    asistencia_tiempos: false,
-  },
-  envioQR: "correo",
-  costoInscripcion: "",
-  tiempos: [],
-});
-
-const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
-  modo: "individual",
-  maxParticipantes: "",
-  maxEquipos: "",
-  minIntegrantes: "1",
-  maxIntegrantes: "5",
-  seleccion: { asesor: false, lider_equipo: false },
-  camposPorPerfil: {
-    participante: [],
-    asesor: [],
-    integrante: [],
-    lider_equipo: [],
-  },
-});
-
-/**
- * PERSONAL BASE
- * =============
- */
-
-export const rolesPersonalBase: RolPersonalConfig[] = [
-  {
-    id: "coordinadores",
-    nombre: "Coordinadores",
-    descripcion: "Organizan, planifican y supervisan actividades del evento.",
-    activo: true,
-  },
-  {
-    id: "jurado",
-    nombre: "Jurado",
-    descripcion: "Evalúan y verifican objetivos del evento.",
-    activo: true,
-  },
-  {
-    id: "colaboradores",
-    nombre: "Colaboradores",
-    descripcion: "Apoyan actividades para alcanzar objetivos.",
-    activo: true,
-  },
-  {
-    id: "asesores",
-    nombre: "Asesores",
-    descripcion: "Orientan y brindan apoyo especializado.",
-    activo: false,
-  },
-  {
-    id: "patrocinadores",
-    nombre: "Patrocinadores",
-    descripcion: "Aportan recursos y apoyo.",
-    activo: false,
-  },
-  {
-    id: "invitados",
-    nombre: "Invitados",
-    descripcion: "Participan de manera especial en el evento.",
-    activo: false,
-  },
-  {
-    id: "edecanes",
-    nombre: "Edecanes",
-    descripcion: "Apoyan logística y atención.",
-    activo: false,
-  },
-  {
-    id: "coord-edecanes",
-    nombre: "Coordinadores de edecanes",
-    descripcion: "Supervisan a edecanes.",
-    activo: false,
-  },
-];
+// ---------------------------------------------------------
+// Campos base y extra para "Personal" en el wizard
+// ---------------------------------------------------------
 
 export const camposBasePersonal: CampoEvento[] = [
-  { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
   {
-    id: "campo-apellido-paterno",
-    nombre: "Apellido paterno",
-    tipo: "texto",
+    id: "pers-nombre",
+    nombre: "Nombre",
+    tipo: "texto_corto",
     immutable: true,
   },
   {
-    id: "campo-apellido-materno",
-    nombre: "Apellido materno",
-    tipo: "texto",
+    id: "pers-ap-paterno",
+    nombre: "Apellido Paterno",
+    tipo: "texto_corto",
     immutable: true,
   },
   {
-    id: "campo-correo",
+    id: "pers-ap-materno",
+    nombre: "Apellido Materno",
+    tipo: "texto_corto",
+    immutable: true,
+  },
+  {
+    id: "pers-correo",
     nombre: "Correo",
-    tipo: "texto",
+    tipo: "texto_corto",
     immutable: true,
   },
 ];
 
 export const camposExtraPersonal: CampoEvento[] = [
-  { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+  {
+    id: "pers-telefono",
+    nombre: "Teléfono",
+    tipo: "texto_corto",
+  },
+  {
+    id: "pers-puesto",
+    nombre: "Puesto / Rol",
+    tipo: "texto_corto",
+  },
 ];
 
-const crearCamposPorRolPersonal = (): Record<string, CampoEvento[]> => {
-  const mapa: Record<string, CampoEvento[]> = {};
-  rolesPersonalBase.forEach((r) => {
-    mapa[r.id] = [...camposBasePersonal, ...camposExtraPersonal];
-  });
-  return mapa;
-};
+// ---------------------------------------------------------
+// Personal por defecto para plantillas
+// ---------------------------------------------------------
 
-export const crearPersonalPlantillaPorDefecto = (): PersonalConfig => ({
-  roles: rolesPersonalBase.map((r) => ({ ...r })),
-  camposPorRol: crearCamposPorRolPersonal(),
-});
-
-/** Configuración completa que se guarda en un evento */
-export type ConfigEvento = {
-  infoEvento: InfoEventoConfig;
-  ajuste: AjusteConfig;
-  participantes: ParticipantesDraft;
-  personal: PersonalConfig;
-};
-
-/**
- * PLANTILLAS
- * ==========
- * En las plantillas NO guardamos el nombre/descripción específicos del evento,
- * solo la configuración reutilizable.
- */
-
-export type PlantillaEvento = {
-  id: string;
-  nombrePlantilla: string;
-  tipo: "concurso" | "foro" | "curso" | "robotica" | "otro";
-  coverUrl: string;
-  config: ConfigEvento;
-  createdAt: any;
-  createdBy?: {
-    uid?: string;
-    nombre?: string;
-    correo?: string;
+export function crearPersonalPlantillaPorDefecto(): PersonalConfig {
+  return {
+    roles: [
+      {
+        id: "rol-organizador",
+        nombre: "Organizador",
+        descripcion: "Personal encargado de coordinar el evento.",
+        activo: true,
+      },
+    ],
+    camposPorRol: {
+      "rol-organizador": [...camposBasePersonal, ...camposExtraPersonal],
+    },
   };
-};
-
-const coverPorTipo: Record<PlantillaEvento["tipo"], string> = {
-  concurso: "/Concurso.png",
-  foro: "/Foro.png",
-  curso: "/Cursos.png",
-  robotica: "/Robotica.png",
-  otro: "/EventoBlanco.png",
-};
-
-export const obtenerCoverPorTipo = (tipo: PlantillaEvento["tipo"]): string =>
-  coverPorTipo[tipo] ?? coverPorTipo.otro;
-
-/**
- * AUDITORÍA
- * =========
- */
-
-export type AuditoriaAdminEventos = {
-  tipo:
-    | "CREAR_EVENTO"
-    | "EDITAR_EVENTO_INFO"
-    | "EDITAR_EVENTO_CONFIG"
-    | "ELIMINAR_EVENTO";
-  eventoId?: string;
-  descripcion: string;
-  payload?: any;
-  actor?: {
-    uid?: string;
-    nombre?: string;
-    correo?: string;
-  };
-};
-
-export async function registrarAuditoriaAdminEventos(
-  entrada: AuditoriaAdminEventos,
-) {
-  const colRef = collection(db, "auditoriaAdminEventos");
-  await addDoc(colRef, {
-    ...entrada,
-    timestamp: serverTimestamp(),
-  });
 }
 
-/**
- * CREA UN EVENTO NUEVO A PARTIR DEL WIZARD
- * =======================================
- */
-export async function crearEventoDesdeWizard(
-  config: ConfigEvento,
-  opciones?: {
-    plantillaBaseId?: string | null;
-    actor?: AuditoriaAdminEventos["actor"];
-  },
-): Promise<string> {
-  const colRef = collection(db, "eventos");
+// ---------------------------------------------------------
+// CRUD de PLANTILLAS de evento
+// Colección: "plantillas_evento"
+// ---------------------------------------------------------
 
-  const docRef = await addDoc(colRef, {
-    config: {
-      infoEvento: config.infoEvento,
-      ajuste: config.ajuste,
-      participantes: config.participantes,
-      personal: config.personal,
-    },
-    estado: "activo",
-    plantillaBaseId: opciones?.plantillaBaseId ?? null,
-    creadoEn: serverTimestamp(),
-    creadoPor: opciones?.actor ?? null,
-  });
+const plantillasCol = collection(db, "plantillas_evento");
 
-  await registrarAuditoriaAdminEventos({
-    tipo: "CREAR_EVENTO",
-    eventoId: docRef.id,
-    descripcion: `Se creó el evento "${config.infoEvento.nombre}" desde el wizard`,
-    payload: {
-      plantillaBaseId: opciones?.plantillaBaseId ?? null,
-    },
-    actor: opciones?.actor,
-  });
-
-  return docRef.id;
-}
-
-/**
- * GUARDA UNA PLANTILLA DE EVENTO A PARTIR DEL ESTADO ACTUAL DEL WIZARD
- * ====================================================================
- */
-export async function guardarPlantillaEvento(
-  datos: {
-    nombrePlantilla: string;
-    tipo: PlantillaEvento["tipo"];
-    coverUrl: string;
-  },
-  configActual: ConfigEvento,
-  actor?: AuditoriaAdminEventos["actor"],
-): Promise<string> {
-  const personalSanitizado: PersonalConfig = {
-    roles: (configActual.personal?.roles ?? rolesPersonalBase).map((r) => ({
-      ...r,
-    })),
-    camposPorRol: Object.fromEntries(
-      Object.entries(
-        configActual.personal?.camposPorRol ?? crearCamposPorRolPersonal(),
-      ).map(([rolId, campos]) => [
-        rolId,
-        campos.map((c) => ({
-          ...c,
-        })),
-      ]),
-    ),
-  };
-
-  const colRef = collection(db, "plantillasEvento");
-
-  const plantillaDoc = await addDoc(colRef, {
-    nombrePlantilla: datos.nombrePlantilla,
-    tipo: datos.tipo,
-    coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
-    config: {
-      // En la plantilla NO guardamos la info específica del evento
-      infoEvento: crearInfoEventoPlantillaVacia(),
-      ajuste: configActual.ajuste,
-      participantes: configActual.participantes,
-      personal: personalSanitizado,
-    },
-    createdAt: serverTimestamp(),
-    createdBy: actor ?? null,
-  });
-
-  await registrarAuditoriaAdminEventos({
-    tipo: "EDITAR_EVENTO_CONFIG",
-    descripcion: `Se guardó una plantilla de evento "${datos.nombrePlantilla}"`,
-    payload: { plantillaId: plantillaDoc.id },
-    actor,
-  });
-
-  return plantillaDoc.id;
-}
-
-/**
- * LEE LAS PLANTILLAS PARA LA GALERÍA
- * ==================================
- */
 export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
-  const colRef = collection(db, "plantillasEvento");
-  const snap = await getDocs(query(colRef));
-
-  const items: PlantillaEvento[] = snap.docs.map((d) => {
+  const snap = await getDocs(plantillasCol);
+  return snap.docs.map((d) => {
     const data = d.data() as any;
-
-    const tipo = (data.tipo ?? "otro") as PlantillaEvento["tipo"];
-    const coverUrl =
-      data.coverUrl || obtenerCoverPorTipo(tipo) || "/EventoBlanco.png";
-
-    const rawConfig = data.config ?? {};
-
-    const infoEvento: InfoEventoConfig = crearInfoEventoPlantillaVacia();
-    const ajuste: AjusteConfig =
-      rawConfig.ajuste ?? crearAjustePlantillaPorDefecto();
-    const participantes: ParticipantesDraft =
-      rawConfig.participantes ?? crearParticipantesPlantillaPorDefecto();
-    const personal: PersonalConfig =
-      rawConfig.personal ?? crearPersonalPlantillaPorDefecto();
-
     return {
       id: d.id,
-      nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
-      tipo,
-      coverUrl,
-      config: {
-        infoEvento,
-        ajuste,
-        participantes,
-        personal,
-      },
-      createdAt: data.createdAt,
-      createdBy: data.createdBy,
-    };
+      nombrePlantilla: data.nombrePlantilla ?? "Sin nombre",
+      tipo: data.tipo ?? "otro",
+      coverUrl: data.coverUrl ?? null,
+      config: data.config ?? undefined,
+      createdAt: data.createdAt?.toDate?.() ?? null,
+      createdBy: data.createdBy ?? undefined,
+    } satisfies PlantillaEvento;
   });
-
-  return items;
 }
 
-export async function eliminarPlantillaEvento(
-  plantillaId: string,
-): Promise<void> {
-  const ref = doc(db, "plantillasEvento", plantillaId);
+export async function eliminarPlantillaEvento(id: string): Promise<void> {
+  const ref = doc(db, "plantillas_evento", id);
   await deleteDoc(ref);
 }
 
+// Si quieres guardar nuevas plantillas desde el wizard puedes crear aquí
+// una función guardarPlantillaEvento(payload: PlantillaEvento | Parcial).
+
+// ---------------------------------------------------------
+// Configuración de EVENTOS (wizard → Firestore)
+// Colección: "eventos"
+// ---------------------------------------------------------
+
+export interface ConfigEventoGuardada {
+  infoEvento: InfoEventoDraft;
+  ajuste: AjusteConfig;
+  participantes: ParticipantesDraft;
+}
+
 /**
- * CARGA LA CONFIGURACIÓN COMPLETA DE UN EVENTO
- * ============================================
+ * Carga la configuración completa del evento desde Firestore.
+ * Espera que el documento tenga un campo "config" con:
+ *  { infoEvento, ajuste, participantesConfig }
  */
 export async function cargarConfigEvento(
-  eventoId: string,
-): Promise<ConfigEvento | null> {
-  const ref = doc(db, "eventos", eventoId);
+  idEvento: string,
+): Promise<ConfigEventoGuardada | null> {
+  const ref = doc(db, "eventos", idEvento);
   const snap = await getDoc(ref);
+
   if (!snap.exists()) return null;
 
   const data = snap.data() as any;
   const cfg = data.config ?? {};
 
-  return {
-    infoEvento: {
-      nombre: cfg.infoEvento?.nombre ?? "Evento sin nombre",
-      descripcion: cfg.infoEvento?.descripcion ?? "",
-      fechaInicioEvento: cfg.infoEvento?.fechaInicioEvento ?? "",
-      fechaFinEvento: cfg.infoEvento?.fechaFinEvento ?? "",
-      fechaInicioInscripciones:
-        cfg.infoEvento?.fechaInicioInscripciones ?? "",
-      fechaFinInscripciones: cfg.infoEvento?.fechaFinInscripciones ?? "",
-      imagenPortadaUrl: cfg.infoEvento?.imagenPortadaUrl ?? null,
+  const info: InfoEventoDraft =
+    cfg.infoEvento ?? {
+      nombre: data.titulo ?? "",
+      descripcion: data.descripcion ?? "",
+      fechaInicioEvento: data.fecha_inicio_evento ?? "",
+      fechaFinEvento: data.fecha_fin_evento ?? "",
+      fechaInicioInscripciones: data.fecha_inicio_inscripciones ?? "",
+      fechaFinInscripciones: data.fecha_fin_inscripciones ?? "",
+      imagenPortadaUrl: data.imagen_portada ?? null,
+    };
+
+  const ajuste: AjusteConfig = cfg.ajuste ?? {
+    caracteristicas: {
+      asistencia_qr: false,
+      confirmacion_pago: false,
+      envio_correo: false,
+      asistencia_tiempos: false,
     },
-    ajuste: cfg.ajuste ?? crearAjustePlantillaPorDefecto(),
-    participantes:
-      cfg.participantes ?? crearParticipantesPlantillaPorDefecto(),
-    personal: cfg.personal ?? crearPersonalPlantillaPorDefecto(),
+    envioQR: "correo",
+    costoInscripcion: "",
+    tiempos: [],
   };
+
+  const participantes: ParticipantesDraft =
+    cfg.participantesConfig ?? cfg.participantes ?? {
+      modo: "individual",
+      maxParticipantes: "",
+      maxEquipos: "",
+      minIntegrantes: "1",
+      maxIntegrantes: "5",
+      seleccion: { asesor: false, lider_equipo: false },
+      camposPorPerfil: {
+        participante: [],
+        asesor: [],
+        integrante: [],
+        lider_equipo: [],
+      },
+    };
+
+  return { infoEvento: info, ajuste, participantes };
 }
 
 /**
- * ACTUALIZA SOLO LA INFORMACIÓN DEL EVENTO (pantalla de Información)
- * ==================================================================
+ * Actualiza la información básica de un evento (nombre, descripción, fechas)
+ * y deja rastro mínimo en un log simple.
  */
 export async function actualizarInfoEvento(
-  eventoId: string,
-  info: Partial<InfoEventoConfig>,
-  actor?: AuditoriaAdminEventos["actor"],
-) {
-  const ref = doc(db, "eventos", eventoId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-
-  const data = snap.data() as any;
-  const actual = data.config?.infoEvento ?? {};
+  idEvento: string,
+  infoParcial: {
+    nombre: string;
+    descripcion: string;
+    fechaInicioEvento: string;
+    fechaFinEvento: string;
+    fechaInicioInscripciones: string;
+    fechaFinInscripciones: string;
+  },
+  usuario: { uid: string; nombre: string; correo: string },
+): Promise<void> {
+  const ref = doc(db, "eventos", idEvento);
 
   await updateDoc(ref, {
+    titulo: infoParcial.nombre,
+    descripcion: infoParcial.descripcion,
+    fecha_inicio_evento: infoParcial.fechaInicioEvento || null,
+    fecha_fin_evento: infoParcial.fechaFinEvento || null,
+    fecha_inicio_inscripciones: infoParcial.fechaInicioInscripciones || null,
+    fecha_fin_inscripciones: infoParcial.fechaFinInscripciones || null,
     "config.infoEvento": {
-      ...actual,
-      ...info,
+      nombre: infoParcial.nombre,
+      descripcion: infoParcial.descripcion,
+      fechaInicioEvento: infoParcial.fechaInicioEvento,
+      fechaFinEvento: infoParcial.fechaFinEvento,
+      fechaInicioInscripciones: infoParcial.fechaInicioInscripciones,
+      fechaFinInscripciones: infoParcial.fechaFinInscripciones,
+    },
+    actualizadoEn: serverTimestamp(),
+    actualizadoPor: {
+      uid: usuario.uid,
+      nombre: usuario.nombre,
+      correo: usuario.correo,
     },
   });
 
-  await registrarAuditoriaAdminEventos({
-    tipo: "EDITAR_EVENTO_INFO",
-    eventoId,
-    descripcion: "Se actualizó la información general del evento",
-    payload: info,
-    actor,
+  // Log muy simple
+  const bitacoraCol = collection(db, "eventos", idEvento, "bitacora_cambios");
+  await addDoc(bitacoraCol, {
+    tipo: "ACTUALIZAR_INFO",
+    detalle: "Actualización de información básica del evento",
+    infoParcial,
+    usuario,
+    creadoEn: serverTimestamp(),
   });
 }
 
 /**
- * ELIMINA UN EVENTO COMPLETO
+ * Elimina un evento y deja registro en una colección de "eventos_eliminados".
+ * (La eliminación es definitiva sobre la colección principal).
  */
 export async function eliminarEvento(
-  eventoId: string,
-  actor?: AuditoriaAdminEventos["actor"],
-) {
-  const ref = doc(db, "eventos", eventoId);
-  await deleteDoc(ref);
+  idEvento: string,
+  usuario: { uid: string; nombre: string; correo: string },
+): Promise<void> {
+  const ref = doc(db, "eventos", idEvento);
 
-  await registrarAuditoriaAdminEventos({
-    tipo: "ELIMINAR_EVENTO",
-    eventoId,
-    descripcion: "Se eliminó el evento y todos sus datos asociados",
-    actor,
+  // Guardamos una copia mínima antes de borrar
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : null;
+
+  const logCol = collection(db, "eventos_eliminados");
+  await addDoc(logCol, {
+    idEvento,
+    data,
+    eliminadoPor: usuario,
+    eliminadoEn: serverTimestamp(),
   });
+
+  await deleteDoc(ref);
 }
