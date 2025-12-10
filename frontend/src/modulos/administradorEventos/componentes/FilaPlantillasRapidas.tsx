@@ -1,3 +1,4 @@
+// src/modulos/administradorEventos/componentes/FilaPlantillasRapidas.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import TarjetaPlantillaEvento from "./TarjetaPlantillaEvento";
@@ -20,14 +21,12 @@ const FilaPlantillasRapidas: React.FC<Props> = ({ size = "normal" }) => {
 
   const manejarClickPlantilla = (id: string) => {
     if (id === "mas") {
-      // 👉 Ir a la galería de plantillas
+      // Ir a la galería de plantillas
       navigate("/admin-eventos/plantillas");
     } else {
-      // 👉 Ir al wizard de creación de evento
-      //    (puedes leer `location.state.plantillaId` en la página de crear)
-      navigate("/admin-eventos/crear", {
-        state: { plantillaId: id },
-      });
+      // Abrir el wizard de creación de evento.
+      // Más adelante, si quieres, puedes pasar query params tipo ?tipo=concurso
+      navigate("/admin-eventos/crear");
     }
   };
 

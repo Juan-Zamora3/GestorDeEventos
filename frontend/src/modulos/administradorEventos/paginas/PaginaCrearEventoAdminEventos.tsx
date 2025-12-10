@@ -1,14 +1,16 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../../../firebase/firebaseConfig"; // Ajusta la ruta si es necesario
+import { db } from "../../../firebase/firebaseConfig";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 type Paso = 1 | 2 | 3 | 4 | 5;
-
 type ModalidadRegistro = "individual" | "equipos";
 
 interface RolPersonal {
@@ -24,11 +26,7 @@ interface CategoriaEvento {
   cupo: number;
 }
 
-type TipoCampo =
-  | "texto_corto"
-  | "email"
-  | "telefono"
-  | "seleccion_multiple";
+type TipoCampo = "texto_corto" | "email" | "telefono" | "seleccion_multiple";
 
 interface CampoFormulario {
   id: string;
@@ -39,7 +37,113 @@ interface CampoFormulario {
   bloqueado?: boolean;
 }
 
+// ---- Defaults reutilizables para cargar plantilla o iniciar en blanco ----
+const ROLES_PERSONAL_DEFAULT: RolPersonal[] = [
+  {
+    id: "coordinadores",
+    nombre: "Coordinadores",
+    descripcion: "Organizan, planifican y supervisan actividades del evento.",
+    activo: true,
+  },
+  {
+    id: "jurado",
+    nombre: "Jurado",
+    descripcion: "Evalúan y verifican objetivos del evento.",
+    activo: true,
+  },
+  {
+    id: "colaboradores",
+    nombre: "Colaboradores",
+    descripcion: "Apoyan actividades para alcanzar objetivos.",
+    activo: true,
+  },
+  {
+    id: "asesores",
+    nombre: "Asesores",
+    descripcion: "Orientan y brindan apoyo especializado.",
+    activo: false,
+  },
+  {
+    id: "patrocinadores",
+    nombre: "Patrocinadores",
+    descripcion: "Aportan recursos y apoyo.",
+    activo: false,
+  },
+  {
+    id: "edecanes",
+    nombre: "Edecanes",
+    descripcion: "Apoyan logística y atención.",
+    activo: false,
+  },
+  {
+    id: "coord_edecanes",
+    nombre: "Coordinadores de edecanes",
+    descripcion: "Supervisan a edecanes.",
+    activo: false,
+  },
+  {
+    id: "invitados",
+    nombre: "Invitados",
+    descripcion: "Participan de manera especial en el evento.",
+    activo: false,
+  },
+];
+
+const CAMPOS_FORMULARIO_DEFAULT: CampoFormulario[] = [
+  {
+    id: "nombre",
+    nombreCampo: "Nombre",
+    tipoCampo: "texto_corto",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+  {
+    id: "ap_paterno",
+    nombreCampo: "Apellido paterno",
+    tipoCampo: "texto_corto",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+  {
+    id: "ap_materno",
+    nombreCampo: "Apellido materno",
+    tipoCampo: "texto_corto",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+  {
+    id: "correo",
+    nombreCampo: "Correo",
+    tipoCampo: "email",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+  {
+    id: "telefono",
+    nombreCampo: "Teléfono",
+    tipoCampo: "telefono",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+  {
+    id: "institucion",
+    nombreCampo: "Institución",
+    tipoCampo: "seleccion_multiple",
+    ejemplo: "sección de registro",
+    obligatorio: true,
+    bloqueado: true,
+  },
+];
+
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   // ---------------- ESTADO GENERAL DEL WIZARD ----------------
   const [paso, setPaso] = useState<Paso>(1);
 
@@ -49,81 +153,25 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const [fechaFinEvento, setFechaFinEvento] = useState("");
   const [fechaInicioInscripciones, setFechaInicioInscripciones] =
     useState("");
-  const [fechaFinInscripciones, setFechaFinInscripciones] =
-    useState("");
+  const [fechaFinInscripciones, setFechaFinInscripciones] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fotoNombre, setFotoNombre] = useState<string | null>(null);
 
   // ----- Paso 2: Personal / Staff -----
-  const [rolesPersonal, setRolesPersonal] = useState<RolPersonal[]>([
-    {
-      id: "coordinadores",
-      nombre: "Coordinadores",
-      descripcion:
-        "Organizan, planifican y supervisan actividades del evento.",
-      activo: true,
-    },
-    {
-      id: "jurado",
-      nombre: "Jurado",
-      descripcion: "Evalúan y verifican objetivos del evento.",
-      activo: true,
-    },
-    {
-      id: "colaboradores",
-      nombre: "Colaboradores",
-      descripcion: "Apoyan actividades para alcanzar objetivos.",
-      activo: true,
-    },
-    {
-      id: "asesores",
-      nombre: "Asesores",
-      descripcion: "Orientan y brindan apoyo especializado.",
-      activo: false,
-    },
-    {
-      id: "patrocinadores",
-      nombre: "Patrocinadores",
-      descripcion: "Aportan recursos y apoyo.",
-      activo: false,
-    },
-    {
-      id: "edecanes",
-      nombre: "Edecanes",
-      descripcion: "Apoyan logística y atención.",
-      activo: false,
-    },
-    {
-      id: "coord_edecanes",
-      nombre: "Coordinadores de edecanes",
-      descripcion: "Supervisan a edecanes.",
-      activo: false,
-    },
-    {
-      id: "invitados",
-      nombre: "Invitados",
-      descripcion:
-        "Participan de manera especial en el evento.",
-      activo: false,
-    },
-  ]);
-
+  const [rolesPersonal, setRolesPersonal] = useState<RolPersonal[]>(
+    ROLES_PERSONAL_DEFAULT
+  );
   const [rolSeleccionadoId, setRolSeleccionadoId] =
     useState<string>("coordinadores");
 
-  // Modales de personal
-  const [modalNuevoRolAbierto, setModalNuevoRolAbierto] =
-    useState(false);
+  const [modalNuevoRolAbierto, setModalNuevoRolAbierto] = useState(false);
   const [nuevoRolNombre, setNuevoRolNombre] = useState("");
-  const [nuevoRolDescripcion, setNuevoRolDescripcion] =
-    useState("");
+  const [nuevoRolDescripcion, setNuevoRolDescripcion] = useState("");
 
   // ----- Paso 3: Integrantes / Participantes -----
   const [modalidadRegistro, setModalidadRegistro] =
     useState<ModalidadRegistro>("individual");
-  const [maxParticipantes, setMaxParticipantes] =
-    useState<string>("");
-
+  const [maxParticipantes, setMaxParticipantes] = useState<string>("");
   const [categorias, setCategorias] = useState<CategoriaEvento[]>([]);
   const [modalNuevaCategoriaAbierto, setModalNuevaCategoriaAbierto] =
     useState(false);
@@ -138,74 +186,27 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const [envioPorCorreo, setEnvioPorCorreo] = useState(true);
   const [medioEnvioQR, setMedioEnvioQR] = useState("Correo");
   const [costoInscripcion, setCostoInscripcion] = useState("0");
-
-  // Podrías extender a una lista de tiempos de entrada/salida
-  const [tiempos, setTiempos] = useState<
-    { id: string; etiqueta: string }[]
-  >([]);
+  const [tiempos, setTiempos] = useState<{ id: string; etiqueta: string }[]>(
+    []
+  );
 
   // ----- Paso 5: Formulario -----
   const [camposFormulario, setCamposFormulario] =
-    useState<CampoFormulario[]>([
-      {
-        id: "nombre",
-        nombreCampo: "Nombre",
-        tipoCampo: "texto_corto",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-      {
-        id: "ap_paterno",
-        nombreCampo: "Apellido paterno",
-        tipoCampo: "texto_corto",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-      {
-        id: "ap_materno",
-        nombreCampo: "Apellido materno",
-        tipoCampo: "texto_corto",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-      {
-        id: "correo",
-        nombreCampo: "Correo",
-        tipoCampo: "email",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-      {
-        id: "telefono",
-        nombreCampo: "Teléfono",
-        tipoCampo: "telefono",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-      {
-        id: "institucion",
-        nombreCampo: "Institución",
-        tipoCampo: "seleccion_multiple",
-        ejemplo: "sección de registro",
-        obligatorio: true,
-        bloqueado: true,
-      },
-    ]);
-
+    useState<CampoFormulario[]>(CAMPOS_FORMULARIO_DEFAULT);
   const [modalCampoAbierto, setModalCampoAbierto] = useState(false);
-  const [campoEditandoId, setCampoEditandoId] = useState<
-    string | null
-  >(null);
+  const [campoEditandoId, setCampoEditandoId] = useState<string | null>(
+    null
+  );
   const [campoNombre, setCampoNombre] = useState("");
-  const [campoTipo, setCampoTipo] =
-    useState<TipoCampo>("texto_corto");
+  const [campoTipo, setCampoTipo] = useState<TipoCampo>("texto_corto");
   const [campoEjemplo, setCampoEjemplo] = useState("");
   const [campoObligatorio, setCampoObligatorio] = useState(true);
+
+  // ----- Plantillas -----
+  const [nombrePlantilla, setNombrePlantilla] = useState("");
+  const [cargandoPlantilla, setCargandoPlantilla] = useState(false);
+  const [guardandoEvento, setGuardandoEvento] = useState(false);
+  const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
 
   // ----------------- HELPER: sidebar -----------------
   const pasos = [
@@ -239,68 +240,270 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const esPasoActivo = (id: Paso) => id === paso;
   const esPasoCompletado = (id: Paso) => id < paso;
 
+  // ----------------- CARGAR PLANTILLA SI VIENE EN LA URL -----------------
+  useEffect(() => {
+    const plantillaId = searchParams.get("plantilla");
+    if (!plantillaId) return;
+
+    const cargarPlantilla = async () => {
+      try {
+        setCargandoPlantilla(true);
+        const ref = doc(db, "plantillasEvento", plantillaId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+
+        const data = snap.data() as any;
+        const cfg = data.config ?? {};
+        const info = cfg.informacion ?? {};
+        const part = cfg.participantes ?? {};
+        const per = cfg.personal ?? {};
+        const aj = cfg.ajustes ?? {};
+        const form = cfg.formulario ?? {};
+
+        setNombrePlantilla(data.nombrePlantilla ?? "");
+        setNombreEvento(info.nombreEvento ?? "");
+        setFechaInicioEvento(info.fechaInicioEvento ?? "");
+        setFechaFinEvento(info.fechaFinEvento ?? "");
+        setFechaInicioInscripciones(
+          info.fechaInicioInscripciones ?? ""
+        );
+        setFechaFinInscripciones(info.fechaFinInscripciones ?? "");
+        setDescripcion(info.descripcion ?? "");
+        setFotoNombre(info.fotoNombre ?? null);
+
+        setRolesPersonal(
+          Array.isArray(per.roles) && per.roles.length > 0
+            ? (per.roles as RolPersonal[])
+            : ROLES_PERSONAL_DEFAULT
+        );
+
+        setModalidadRegistro(
+          (part.modalidadRegistro as ModalidadRegistro) ?? "individual"
+        );
+        setMaxParticipantes(
+          part.maxParticipantes != null
+            ? String(part.maxParticipantes)
+            : ""
+        );
+        setCategorias(
+          Array.isArray(part.categorias)
+            ? (part.categorias as CategoriaEvento[])
+            : []
+        );
+
+        setTomarAsistenciaQR(
+          aj.tomarAsistenciaQR !== undefined ? aj.tomarAsistenciaQR : true
+        );
+        setTomarAsistenciaTiempos(
+          aj.tomarAsistenciaTiempos !== undefined
+            ? aj.tomarAsistenciaTiempos
+            : false
+        );
+        setConfirmacionPago(
+          aj.confirmacionPago !== undefined ? aj.confirmacionPago : false
+        );
+        setEnvioPorCorreo(
+          aj.envioPorCorreo !== undefined ? aj.envioPorCorreo : true
+        );
+        setMedioEnvioQR(aj.medioEnvioQR ?? "Correo");
+        setCostoInscripcion(
+          aj.costoInscripcion != null
+            ? String(aj.costoInscripcion)
+            : "0"
+        );
+        setTiempos(Array.isArray(aj.tiempos) ? aj.tiempos : []);
+
+        setCamposFormulario(
+          Array.isArray(form.campos) && form.campos.length > 0
+            ? (form.campos as CampoFormulario[])
+            : CAMPOS_FORMULARIO_DEFAULT
+        );
+      } finally {
+        setCargandoPlantilla(false);
+      }
+    };
+
+    cargarPlantilla();
+  }, [searchParams]);
+
+  // ----------------- VALIDACIONES POR PASO -----------------
+  const validarPaso = (p: Paso): boolean => {
+    switch (p) {
+      case 1: {
+        if (!nombreEvento.trim()) {
+          alert("Escribe el nombre del evento.");
+          return false;
+        }
+        if (
+          !fechaInicioEvento ||
+          !fechaFinEvento ||
+          !fechaInicioInscripciones ||
+          !fechaFinInscripciones
+        ) {
+          alert("Completa todas las fechas del evento e inscripciones.");
+          return false;
+        }
+        if (!descripcion.trim()) {
+          alert("Escribe una descripción del evento.");
+          return false;
+        }
+        const fi = new Date(fechaInicioEvento).getTime();
+        const ff = new Date(fechaFinEvento).getTime();
+        const fii = new Date(fechaInicioInscripciones).getTime();
+        const ffi = new Date(fechaFinInscripciones).getTime();
+        if (fi && ff && fi > ff) {
+          alert("La fecha de inicio del evento no puede ser mayor a la de fin.");
+          return false;
+        }
+        if (fii && ffi && fii > ffi) {
+          alert(
+            "La fecha de inicio de inscripciones no puede ser mayor a la de fin."
+          );
+          return false;
+        }
+        return true;
+      }
+      case 2: {
+        if (!rolesPersonal.some((r) => r.activo)) {
+          alert("Activa al menos un rol de personal para el evento.");
+          return false;
+        }
+        return true;
+      }
+      case 3: {
+        if (modalidadRegistro === "equipos" && categorias.length === 0) {
+          alert(
+            "El evento está configurado por equipos; agrega al menos una categoría."
+          );
+          return false;
+        }
+        if (maxParticipantes && Number(maxParticipantes) <= 0) {
+          alert("La cantidad máxima de participantes debe ser mayor a cero.");
+          return false;
+        }
+        return true;
+      }
+      case 4: {
+        if (confirmacionPago && Number(costoInscripcion) <= 0) {
+          alert(
+            "Si habilitas confirmación de pago, define un costo de inscripción mayor a cero."
+          );
+          return false;
+        }
+        return true;
+      }
+      case 5: {
+        if (camposFormulario.length === 0) {
+          alert("Agrega al menos un campo en el formulario.");
+          return false;
+        }
+        return true;
+      }
+      default:
+        return true;
+    }
+  };
+
+  // ----------------- CONSTRUCCIÓN DE LA CONFIGURACIÓN -----------------
+  const construirConfigEvento = () => ({
+    informacion: {
+      nombreEvento,
+      fechaInicioEvento,
+      fechaFinEvento,
+      fechaInicioInscripciones,
+      fechaFinInscripciones,
+      descripcion,
+      fotoNombre: fotoNombre ?? null,
+    },
+    personal: {
+      roles: rolesPersonal,
+    },
+    participantes: {
+      modalidadRegistro,
+      maxParticipantes: maxParticipantes ? Number(maxParticipantes) : null,
+      categorias,
+    },
+    ajustes: {
+      tomarAsistenciaQR,
+      tomarAsistenciaTiempos,
+      confirmacionPago,
+      envioPorCorreo,
+      medioEnvioQR,
+      costoInscripcion: Number(costoInscripcion) || 0,
+      tiempos,
+    },
+    formulario: {
+      campos: camposFormulario,
+    },
+  });
+
+  // ----------------- GUARDAR EN FIRESTORE -----------------
+  const guardarEventoEnFirestore = async () => {
+    try {
+      setGuardandoEvento(true);
+      const config = construirConfigEvento();
+
+      const docRef = await addDoc(collection(db, "eventos"), {
+        ...config,
+        meta: {
+          creadoEn: serverTimestamp(),
+          idPlantillaOrigen: searchParams.get("plantilla") ?? null,
+        },
+      });
+
+      alert("Evento creado correctamente en Firestore.");
+      navigate(`/admin-eventos/evento/${docRef.id}`);
+    } catch (error) {
+      console.error("Error al guardar el evento:", error);
+      alert("Ocurrió un error al guardar el evento.");
+    } finally {
+      setGuardandoEvento(false);
+    }
+  };
+
+  const guardarPlantillaEnFirestore = async () => {
+    if (!nombrePlantilla.trim()) {
+      alert("Escribe un nombre para la plantilla antes de guardarla.");
+      return;
+    }
+    try {
+      setGuardandoPlantilla(true);
+      const config = construirConfigEvento();
+
+      await addDoc(collection(db, "plantillasEvento"), {
+        nombrePlantilla: nombrePlantilla.trim(),
+        miniaturaUrl: config.informacion.fotoNombre ?? null,
+        config,
+        meta: {
+          creadoEn: serverTimestamp(),
+        },
+      });
+
+      alert("Plantilla guardada correctamente.");
+    } catch (error) {
+      console.error("Error al guardar la plantilla:", error);
+      alert("Ocurrió un error al guardar la plantilla.");
+    } finally {
+      setGuardandoPlantilla(false);
+    }
+  };
+
   // ----------------- NAVIGACIÓN -----------------
   const irSiguiente = async () => {
+    // Valida el paso actual
+    if (!validarPaso(paso)) return;
+
     if (paso < 5) {
       setPaso((p) => (p + 1) as Paso);
       return;
     }
+    // En el último paso se guarda el evento
     await guardarEventoEnFirestore();
   };
 
   const irAnterior = () => {
     if (paso > 1) {
       setPaso((p) => (p - 1) as Paso);
-    }
-  };
-
-  // ----------------- GUARDAR EN FIRESTORE -----------------
-  const guardarEventoEnFirestore = async () => {
-    try {
-      const payload = {
-        informacion: {
-          nombreEvento,
-          fechaInicioEvento,
-          fechaFinEvento,
-          fechaInicioInscripciones,
-          fechaFinInscripciones,
-          descripcion,
-          fotoNombre: fotoNombre ?? null,
-        },
-        personal: {
-          roles: rolesPersonal,
-        },
-        participantes: {
-          modalidadRegistro,
-          maxParticipantes: maxParticipantes
-            ? Number(maxParticipantes)
-            : null,
-          categorias,
-        },
-        ajustes: {
-          tomarAsistenciaQR,
-          tomarAsistenciaTiempos,
-          confirmacionPago,
-          envioPorCorreo,
-          medioEnvioQR,
-          costoInscripcion: Number(costoInscripcion) || 0,
-          tiempos,
-        },
-        formulario: {
-          campos: camposFormulario,
-        },
-        meta: {
-          creadoEn: serverTimestamp(),
-        },
-      };
-
-      await addDoc(collection(db, "eventos"), payload);
-      alert("Evento creado correctamente en Firestore.");
-      // Aquí podrías redirigir al listado de eventos
-      // navigate("/admin/eventos");
-    } catch (error) {
-      console.error("Error al guardar el evento:", error);
-      alert("Ocurrió un error al guardar el evento.");
     }
   };
 
@@ -357,7 +560,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   };
 
   const abrirModalCampoEditar = (campo: CampoFormulario) => {
-    if (campo.bloqueado) return; // los bloqueados no se editan
+    if (campo.bloqueado) return;
     setCampoEditandoId(campo.id);
     setCampoNombre(campo.nombreCampo);
     setCampoTipo(campo.tipoCampo);
@@ -370,7 +573,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     if (!campoNombre.trim()) return;
 
     if (campoEditandoId) {
-      // actualizar
       setCamposFormulario((prev) =>
         prev.map((c) =>
           c.id === campoEditandoId
@@ -385,7 +587,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         )
       );
     } else {
-      // nuevo
       setCamposFormulario((prev) => [
         ...prev,
         {
@@ -402,13 +603,10 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   };
 
   const eliminarCampoFormulario = (id: string) => {
-    setCamposFormulario((prev) =>
-      prev.filter((c) => c.id !== id)
-    );
+    setCamposFormulario((prev) => prev.filter((c) => c.id !== id));
   };
 
   // ----------------- SUBVISTAS DE CADA PASO -----------------
-
   const renderPaso1 = () => (
     <>
       <h1 className="text-2xl font-semibold text-slate-900 mb-6">
@@ -565,7 +763,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           ese rol.
         </p>
 
-        {/* Grid de roles */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {rolesPersonal.map((rol) => {
             const activo = rol.activo;
@@ -600,16 +797,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     e.stopPropagation();
                     setRolesPersonal((prev) =>
                       prev.map((r) =>
-                        r.id === rol.id
-                          ? { ...r, activo: !r.activo }
-                          : r
+                        r.id === rol.id ? { ...r, activo: !r.activo } : r
                       )
                     );
                   }}
                   className={`w-10 h-5 rounded-full flex items-center px-0.5 transition ${
-                    activo
-                      ? "bg-[#5B4AE5]"
-                      : "bg-slate-300"
+                    activo ? "bg-[#5B4AE5]" : "bg-slate-300"
                   }`}
                 >
                   <span
@@ -623,7 +816,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           })}
         </div>
 
-        {/* Campos necesarios */}
         <div>
           <p className="text-xs font-semibold text-slate-700 mb-2">
             Campos necesarios
@@ -634,20 +826,23 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             staff y no se pueden eliminar.
           </p>
           <div className="flex flex-wrap gap-2">
-            {["Nombre", "Apellido paterno", "Apellido materno", "Correo", "Institución"].map(
-              (campo) => (
-                <span
-                  key={campo}
-                  className="px-3 py-1 rounded-full bg-slate-100 text-[11px] text-slate-700"
-                >
-                  {campo}
-                </span>
-              )
-            )}
+            {[
+              "Nombre",
+              "Apellido paterno",
+              "Apellido materno",
+              "Correo",
+              "Institución",
+            ].map((campo) => (
+              <span
+                key={campo}
+                className="px-3 py-1 rounded-full bg-slate-100 text-[11px] text-slate-700"
+              >
+                {campo}
+              </span>
+            ))}
           </div>
         </div>
 
-        {/* Detalle del rol seleccionado (solo lectura) */}
         {rolSeleccionado && (
           <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
             <p className="font-semibold mb-1">
@@ -666,7 +861,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         Participantes
       </h1>
 
-      {/* Modalidad */}
       <div className="mb-4">
         <p className="text-xs font-semibold text-slate-700 mb-2">
           Modalidad
@@ -697,7 +891,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         </div>
       </div>
 
-      {/* Cantidad máxima */}
       <div className="mb-4 max-w-xs">
         <label className="text-xs font-semibold text-slate-700">
           Definir cantidad máxima de participantes
@@ -712,7 +905,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         />
       </div>
 
-      {/* Categorías */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-slate-700">
@@ -723,8 +915,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             onClick={abrirModalNuevaCategoria}
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-[#5B4AE5]/30 text-xs text-[#5B4AE5] font-semibold shadow-sm"
           >
-            +
-            <span className="ml-1">Agregar categoría</span>
+            +<span className="ml-1">Agregar categoría</span>
           </button>
         </div>
         {categorias.length === 0 ? (
@@ -746,14 +937,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     Cupo: {cat.cupo}
                   </p>
                 </div>
-                {/* Si quieres, podrías agregar botón para eliminar/editar */}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Campos necesarios (participante) */}
       <div>
         <p className="text-xs font-semibold text-slate-700 mb-2">
           Campos necesarios para participantes
@@ -789,9 +978,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         Características del evento
       </h1>
 
-      {/* Selección de características */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        {/* Asistencia por QR */}
         <button
           type="button"
           onClick={() => setTomarAsistenciaQR((v) => !v)}
@@ -807,16 +994,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             </span>
             <span
               className={`w-9 h-4 rounded-full flex items-center px-0.5 ${
-                tomarAsistenciaQR
-                  ? "bg-[#5B4AE5]"
-                  : "bg-slate-300"
+                tomarAsistenciaQR ? "bg-[#5B4AE5]" : "bg-slate-300"
               }`}
             >
               <span
                 className={`h-3 w-3 bg-white rounded-full shadow transform transition ${
-                  tomarAsistenciaQR
-                    ? "translate-x-4"
-                    : "translate-x-0"
+                  tomarAsistenciaQR ? "translate-x-4" : "translate-x-0"
                 }`}
               />
             </span>
@@ -826,7 +1009,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           </p>
         </button>
 
-        {/* Confirmación de pago */}
         <button
           type="button"
           onClick={() => setConfirmacionPago((v) => !v)}
@@ -842,16 +1024,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             </span>
             <span
               className={`w-9 h-4 rounded-full flex items-center px-0.5 ${
-                confirmacionPago
-                  ? "bg-[#5B4AE5]"
-                  : "bg-slate-300"
+                confirmacionPago ? "bg-[#5B4AE5]" : "bg-slate-300"
               }`}
             >
               <span
                 className={`h-3 w-3 bg-white rounded-full shadow transform transition ${
-                  confirmacionPago
-                    ? "translate-x-4"
-                    : "translate-x-0"
+                  confirmacionPago ? "translate-x-4" : "translate-x-0"
                 }`}
               />
             </span>
@@ -861,7 +1039,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           </p>
         </button>
 
-        {/* Envío por correo */}
         <button
           type="button"
           onClick={() => setEnvioPorCorreo((v) => !v)}
@@ -877,16 +1054,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             </span>
             <span
               className={`w-9 h-4 rounded-full flex items-center px-0.5 ${
-                envioPorCorreo
-                  ? "bg-[#5B4AE5]"
-                  : "bg-slate-300"
+                envioPorCorreo ? "bg-[#5B4AE5]" : "bg-slate-300"
               }`}
             >
               <span
                 className={`h-3 w-3 bg-white rounded-full shadow transform transition ${
-                  envioPorCorreo
-                    ? "translate-x-4"
-                    : "translate-x-0"
+                  envioPorCorreo ? "translate-x-4" : "translate-x-0"
                 }`}
               />
             </span>
@@ -897,7 +1070,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         </button>
       </div>
 
-      {/* Envío de QR y costo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="text-xs font-semibold text-slate-700">
@@ -928,7 +1100,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         </div>
       </div>
 
-      {/* Tiempos (placeholder simple) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-slate-700">
@@ -947,8 +1118,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             }
             className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-[#5B4AE5]/30 text-xs text-[#5B4AE5] font-semibold shadow-sm"
           >
-            +
-            <span className="ml-1">Añadir tiempo</span>
+            +<span className="ml-1">Añadir tiempo</span>
           </button>
         </div>
         {tiempos.length === 0 ? (
@@ -1046,7 +1216,9 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => eliminarCampoFormulario(campo.id)}
+                        onClick={() =>
+                          eliminarCampoFormulario(campo.id)
+                        }
                         className="text-red-500 hover:underline"
                       >
                         Eliminar
@@ -1063,10 +1235,20 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   );
 
   // ----------------- RENDER PRINCIPAL -----------------
+  if (cargandoPlantilla) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#192D69] to-[#6581D6]">
+        <p className="text-white text-sm opacity-90">
+          Cargando plantilla...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#6581D6] flex justify-center items-center py-10">
       <div className="w-[95%] max-w-[1240px] min-h-[560px] bg-white rounded-[32px] shadow-2xl flex overflow-hidden">
-        {/* Sidebar de pasos */}
+        {/* Sidebar */}
         <aside className="w-80 bg-[#F4F2FF] px-10 py-10 flex flex-col border-r border-[#E0DDFB]">
           <h2 className="text-2xl font-semibold text-slate-900 mb-10">
             Crear Evento
@@ -1095,9 +1277,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     {!ultimo && (
                       <div
                         className={`w-[2px] flex-1 mt-1 ${
-                          completado
-                            ? "bg-[#5B4AE5]"
-                            : "bg-[#D4D0F7]"
+                          completado ? "bg-[#5B4AE5]" : "bg-[#D4D0F7]"
                         }`}
                       />
                     )}
@@ -1105,9 +1285,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                   <div>
                     <p
                       className={`text-xs font-semibold uppercase tracking-[0.15em] ${
-                        activo
-                          ? "text-[#5B4AE5]"
-                          : "text-slate-600"
+                        activo ? "text-[#5B4AE5]" : "text-slate-600"
                       }`}
                     >
                       {p.titulo}
@@ -1121,14 +1299,10 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             })}
           </ol>
 
-          {/* Botón Cancelar */}
           <button
             type="button"
             className="mt-auto w-full rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white font-semibold py-3 text-sm shadow-md"
-            onClick={() => {
-              // Aquí puedes hacer navigate al listado de eventos o dashboard
-              window.history.back();
-            }}
+            onClick={() => navigate(-1)}
           >
             Cancelar
           </button>
@@ -1144,7 +1318,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             {paso === 5 && renderPaso5()}
           </div>
 
-          {/* Footer de pasos */}
           <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-100">
             <span className="text-xs text-slate-400">
               Paso{" "}
@@ -1158,6 +1331,16 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             </span>
 
             <div className="flex items-center gap-3">
+              {paso === 5 && (
+                <input
+                  type="text"
+                  placeholder="Nombre de plantilla (opcional)"
+                  value={nombrePlantilla}
+                  onChange={(e) => setNombrePlantilla(e.target.value)}
+                  className="hidden md:block w-56 rounded-full border border-slate-200 px-3 py-2 text-xs text-slate-700 bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40"
+                />
+              )}
+
               {paso > 1 && (
                 <button
                   type="button"
@@ -1167,12 +1350,31 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                   Volver
                 </button>
               )}
+
+              {paso === 5 && (
+                <button
+                  type="button"
+                  onClick={guardarPlantillaEnFirestore}
+                  disabled={guardandoPlantilla}
+                  className="px-6 py-2.5 rounded-full border border-[#5B4AE5]/40 text-sm font-semibold text-[#5B4AE5] bg-white hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {guardandoPlantilla
+                    ? "Guardando plantilla..."
+                    : "Guardar como plantilla"}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={irSiguiente}
-                className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md"
+                disabled={guardandoEvento}
+                className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md disabled:opacity-60"
               >
-                {paso === 5 ? "Finalizar" : "Siguiente"}
+                {paso === 5
+                  ? guardandoEvento
+                    ? "Guardando evento..."
+                    : "Finalizar"
+                  : "Siguiente"}
               </button>
             </div>
           </div>
@@ -1361,9 +1563,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     setCampoObligatorio((v) => !v)
                   }
                   className={`w-10 h-5 rounded-full flex items-center px-0.5 ${
-                    campoObligatorio
-                      ? "bg-[#5B4AE5]"
-                      : "bg-slate-300"
+                    campoObligatorio ? "bg-[#5B4AE5]" : "bg-slate-300"
                   }`}
                 >
                   <span
