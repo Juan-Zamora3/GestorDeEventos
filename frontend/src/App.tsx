@@ -22,20 +22,7 @@ import SeccionConstanciasDesengloseAdminGeneral from "./modulos/administradorGen
 import LayoutAdminEventos from "./modulos/administradorEventos/paginas/LayoutAdminEventos";
 
 import { PaginaCrearEventoAdminEventos } from "./modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
-import PaginaDesengloseEventoAdminEventos from "./modulos/administradorEventos/paginas/PaginaDesengloseEventoAdminEventos";
-import SeccionInformacionEvento from "./modulos/administradorEventos/componentes/creacionEvento/informacion/SeccionInformacionEvento";
-import SeccionPersonal from "./modulos/administradorEventos/componentes/creacionEvento/personal/SeccionPersonal";
-import SeccionIntegrantes from "./modulos/administradorEventos/componentes/creacionEvento/integrantes/SeccionIntegrantes";
-import SeccionAjusteEvento from "./modulos/administradorEventos/componentes/creacionEvento/ajuste/SeccionAjusteEvento";
-import SeccionFormulario from "./modulos/administradorEventos/componentes/creacionEvento/formulario/SeccionFormulario";
-import SeccionInformacionDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/informacion/SeccionInformacionDesenglose";
-import SeccionEquiposDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/equipos/SeccionEquiposDesenglose";
-import SeccionPersonalDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/personal/SeccionPersonalDesenglose";
-import SeccionAsistenciasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/asistencias/SeccionAsistenciasDesenglose";
-import SeccionPlantillasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/plantillas/SeccionPlantillasDesenglose";
-import SeccionConstanciasDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/constancias/SeccionConstanciasDesenglose";
-import SeccionParticipantesDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/participantes/SeccionParticipantesDesenglose";
-import SeccionFormularioDesenglose from "./modulos/administradorEventos/componentes/desengloseEvento/formulario/SeccionFormularioDesenglose";
+
 import { PaginaGaleriaPlantillasAdminEventos } from "./modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos";
 import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/paginas/PaginaListaEventosAdminEventos";
 
@@ -43,7 +30,7 @@ import { PaginaListaEventosAdminEventos } from "./modulos/administradorEventos/p
 import LayoutAdminAsistencias from "./modulos/administradorAsistencias/paginas/LayoutAdminAsistencias";
 import PaginaListaEventosAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaListaEventosAdminAsistencias";
 import PaginaDetalleEventoAdminAsistencias from "./modulos/administradorAsistencias/paginas/PaginaDetalleEventoAdminAsistencias";
-import PaginaFormularioEventoPublico from "./modulos/administradorEventos/paginas/PaginaFormularioEventoPublico";
+
 
 function App() {
   return (
@@ -81,28 +68,13 @@ function App() {
         <Route path="crear" element={<PaginaCrearEventoAdminEventos />}>
           {/* /admin-eventos/crear → /admin-eventos/crear/informacion */}
           <Route index element={<Navigate to="informacion" replace />} />
-          <Route path="informacion" element={<SeccionInformacionEvento />} />
-          <Route path="personal" element={<SeccionPersonal />} />
-          <Route path="integrantes" element={<SeccionIntegrantes />} />
-          <Route path="ajuste" element={<SeccionAjusteEvento />} />
-          <Route path="formulario" element={<SeccionFormulario />} />
+
         </Route>
 
         {/* Galería de plantillas */}
         <Route path="plantillas" element={<PaginaGaleriaPlantillasAdminEventos />} />
 
-        {/* Desenglose de evento */}
-        <Route path="evento/:id" element={<PaginaDesengloseEventoAdminEventos />}>
-          <Route index element={<SeccionInformacionDesenglose />} />
-          <Route path="informacion" element={<SeccionInformacionDesenglose />} />
-          <Route path="equipos" element={<SeccionEquiposDesenglose />} />
-          <Route path="participantes" element={<SeccionParticipantesDesenglose />} />
-          <Route path="personal" element={<SeccionPersonalDesenglose />} />
-          <Route path="asistencias" element={<SeccionAsistenciasDesenglose />} />
-          <Route path="plantillas" element={<SeccionPlantillasDesenglose />} />
-          <Route path="constancias" element={<SeccionConstanciasDesenglose />} />
-          <Route path="formulario" element={<SeccionFormularioDesenglose />} />
-        </Route>
+        
       </Route>
 
       {/* 🟣 ADMIN ASISTENCIAS */}
@@ -113,8 +85,6 @@ function App() {
         <Route path="eventos/:id" element={<PaginaDetalleEventoAdminAsistencias />} />
       </Route>
 
-      <Route path="/formulario/preview/:id" element={<PaginaFormularioEventoPublico interactive />} />
-      <Route path="/formulario/:id" element={<PaginaFormularioEventoPublico interactive />} />
 
       {/* RUTA DESCONOCIDA → LOGIN */}
       <Route path="*" element={<Navigate to="/" replace />} />

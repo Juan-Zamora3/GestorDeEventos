@@ -1,230 +1,74 @@
-// src/modulos/administradorEventos/paginas/PaginaGaleriaPlantillasAdminEventos.tsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import { FiSearch } from "react-icons/fi";
+import TarjetaPlantillaEvento from "../componentes/TarjetaPlantillaEvento";
+import type { PlantillaEvento } from "../componentes/tiposAdminEventos";
 
-import FilaPlantillasRapidas from "../componentes/IncioEvento/FilaPlantillasRapidas";
-import TarjetaPlantillaEvento from "../componentes/IncioEvento/TarjetaPlantillaEvento";
-
-import type { PlantillaEvento } from "../../../api/eventosAdminEventosApi";
-import {
-  obtenerPlantillasEvento,
-  eliminarPlantillaEvento,
-  crearPersonalPlantillaPorDefecto,
-} from "../../../api/eventosAdminEventosApi";
+const plantillas: PlantillaEvento[] = [
+  { id: "concurso", titulo: "Concurso", imagen: "/Concurso.png" },
+  { id: "foro", titulo: "Foro", imagen: "/Foro.png" },
+  { id: "cursos", titulo: "Cursos", imagen: "/Cursos.png" },
+  { id: "robotica", titulo: "Robotica", imagen: "/Robotica.png" },
+  { id: "hackatec", titulo: "Hackatec", imagen: "/Hackatec.png" },
+  { id: "estructuras", titulo: "Estructuras", imagen: "/Estructuras.png" },
+  { id: "concurso2", titulo: "Concurso", imagen: "/Concurso.png" },
+  { id: "foro2", titulo: "Foro", imagen: "/Foro.png" },
+];
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
-  const navigate = useNavigate();
-  const [showPanel, setShowPanel] = useState(false);
-  const [query, setQuery] = useState("");
-
-  const [plantillasDb, setPlantillasDb] = useState<PlantillaEvento[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setShowPanel(true), 80);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    const cargar = async () => {
-      try {
-        setCargando(true);
-        const items = await obtenerPlantillasEvento();
-        setPlantillasDb(items);
-      } catch (err) {
-        console.error("[Galería plantillas] Error al cargar:", err);
-        setPlantillasDb([]);
-      } finally {
-        setCargando(false);
-      }
-    };
-    void cargar();
-  }, []);
-
-  // Plantilla "Evento en blanco" fija
-  const plantillaEnBlanco: PlantillaEvento = {
-    id: "blank",
-    nombrePlantilla: "Evento en blanco",
-    tipo: "otro",
-    coverUrl: "/evento-blanco.png",
-    config: {
-      infoEvento: {
-        nombre: "",
-        descripcion: "",
-        fechaInicioEvento: "",
-        fechaFinEvento: "",
-        fechaInicioInscripciones: "",
-        fechaFinInscripciones: "",
-        imagenPortadaUrl: null,
-      },
-      ajuste: {
-        caracteristicas: {
-          asistencia_qr: true,
-          confirmacion_pago: false,
-          envio_correo: true,
-          asistencia_tiempos: false,
-        },
-        envioQR: "correo",
-        costoInscripcion: "",
-        tiempos: [],
-      },
-      participantes: {
-        modo: "individual",
-        maxParticipantes: "",
-        maxEquipos: "",
-        minIntegrantes: "1",
-        maxIntegrantes: "5",
-        seleccion: { asesor: false, lider_equipo: false },
-        camposPorPerfil: {
-          participante: [],
-          asesor: [],
-          integrante: [],
-          lider_equipo: [],
-        },
-      },
-      personal: crearPersonalPlantillaPorDefecto(),
-    },
-    createdAt: null,
-    createdBy: undefined,
-  };
-
-  const todasLasPlantillas: PlantillaEvento[] = useMemo(
-    () => [plantillaEnBlanco, ...plantillasDb],
-    [plantillasDb],
-  );
-
-  const filtradas = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return todasLasPlantillas;
-    return todasLasPlantillas.filter((p) =>
-      p.nombrePlantilla.toLowerCase().includes(q),
-    );
-  }, [query, todasLasPlantillas]);
-
-  const irCrearEventoDesdePlantilla = (plantilla: PlantillaEvento) => {
-    navigate("/admin-eventos/crear/informacion", {
-      state: {
-        plantillaId: plantilla.id,
-        slideIn: true,
-        plantillaConfig: {
-          ajuste: plantilla.config?.ajuste,
-          participantes: plantilla.config?.participantes,
-          personal: plantilla.config?.personal,
-        },
-      },
-    });
-  };
-
-  const eliminarPlantilla = async (plantilla: PlantillaEvento) => {
-    const confirmar = window.confirm(
-      `¿Eliminar la plantilla "${plantilla.nombrePlantilla}"? Esta acción no se puede deshacer.`,
-    );
-    if (!confirmar || plantilla.id === "blank") return;
-
-    try {
-      setEliminandoId(plantilla.id);
-      await eliminarPlantillaEvento(plantilla.id);
-      setPlantillasDb((prev) => prev.filter((p) => p.id !== plantilla.id));
-    } catch (err) {
-      console.error("[Galería plantillas] Error al eliminar:", err);
-      alert("No se pudo eliminar la plantilla. Intenta nuevamente.");
-    } finally {
-      setEliminandoId(null);
-    }
-  };
-
   return (
-    <div className="h-full flex flex-col text-white">
-      <section className="bg-transparent px-14 pt-2 pb-2">
-        <div className="transform-gpu transition-all duration-[900ms] ease-in-out translate-y-0 opacity-100">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/admin-eventos/lista", { state: { animateUp: true } })
-              }
-              className="h-9 w-9 rounded-full bg-white/15 flex items-center justify-center text-lg leading-none"
-            >
-              ←
-            </button>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Galería de plantillas
-            </h1>
-          </div>
-
-          <div className="flex justify-center w-full">
-            <FilaPlantillasRapidas size="normal" hideMas />
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#476AC6] text-white">
+      <section className="px-16 pt-10 pb-14">
+        {/* Fila superior: botón atrás + título */}
+        <div className="flex items-center gap-4 mb-10">
+          <button className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center text-2xl leading-none">
+            ←
+          </button>
+          <h1 className="text-[32px] font-semibold tracking-tight">
+            Galeria de plantillas
+          </h1>
         </div>
-      </section>
 
-      <section
-        className={`flex-1 min-h-0 px-14 pt-6 pb-10 transform-gpu transition-all ${
-          showPanel
-            ? "duration-[900ms] ease-out translate-y-0 opacity-100"
-            : "duration-[600ms] ease-in translate-y-6 opacity-0"
-        }`}
-      >
-        <p className="mb-4 text-sm text-white/80">
-          Explora plantillas para concursos, foros y cursos.
-        </p>
-
-        <div className="w-[430px] max-w-full bg-white/95 rounded-full px-5 py-2.5 flex items-center gap-3 text-slate-700 shadow-sm">
-          <FiSearch className="text-slate-400 text-lg" />
-          <input
-            type="text"
-            placeholder="Buscar plantillas..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 border-none outline-none bg-transparent text-sm placeholder:text-slate-400"
+        {/* Tarjeta "Evento en blanco" grande arriba a la izquierda */}
+        <div className="mb-10">
+          <TarjetaPlantillaEvento
+            plantilla={{
+              id: "blanco",
+              titulo: "Evento en blanco",
+              imagen: "/EventoBlanco.png",
+            }}
           />
         </div>
 
-        <div className="mt-8 grid gap-x-8 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 text-slate-900">
-          {filtradas.map((p) => (
-            <div key={p.id} className="space-y-2">
-              <TarjetaPlantillaEvento
-                plantilla={{
-                  id: p.id,
-                  titulo: p.nombrePlantilla,
-                  imagen: p.coverUrl ?? "/evento-blanco.png",
-                }}
-                onClick={() => irCrearEventoDesdePlantilla(p)}
-              />
-
-              {p.id !== "blank" && (
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => irCrearEventoDesdePlantilla(p)}
-                    className="flex-1 rounded-full bg-[#5B4AE5] text-white py-2 font-semibold shadow-sm hover:brightness-110"
-                  >
-                    Usar plantilla
-                  </button>
-                  <button
-                    type="button"
-                    disabled={eliminandoId === p.id}
-                    onClick={() => eliminarPlantilla(p)}
-                    className="px-3 py-2 rounded-full border border-white/40 text-white/80 backdrop-blur-sm hover:text-white hover:border-white disabled:opacity-60"
-                  >
-                    {eliminandoId === p.id ? "Eliminando..." : "Eliminar"}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+        {/* Línea - EXPLORAR - Línea */}
+        <div className="flex items-center gap-6 mb-6">
+          <div className="flex-1 h-px bg-white/50" />
+          <span className="text-lg font-semibold tracking-wide">Explorar</span>
+          <div className="flex-1 h-px bg-white/50" />
         </div>
 
-        {!cargando && filtradas.length === 0 && (
-          <p className="mt-6 text-center text-sm text-white/80">
-            No se encontraron plantillas para “{query}”.
-          </p>
-        )}
+        {/* Buscador centrado como píldora */}
+        <div className="mb-10 flex justify-start">
+          <div className="w-[430px] bg-white rounded-full px-5 py-2.5 flex items-center gap-3 text-slate-700 shadow-sm">
+            <FiSearch className="text-slate-400 text-lg" />
+            <input
+              type="text"
+              placeholder="Buscar plantillas..."
+              className="flex-1 border-none outline-none bg-transparent text-sm placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+
+        {/* Grid de tarjetas de plantillas */}
+        <div className="grid gap-x-8 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {plantillas.map((p) => (
+            <TarjetaPlantillaEvento
+              key={p.id}
+              plantilla={p}
+              onClick={() => console.log("Plantilla seleccionada:", p.id)}
+            />
+          ))}
+        </div>
       </section>
     </div>
   );
 };
-
-export default PaginaGaleriaPlantillasAdminEventos;

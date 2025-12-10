@@ -1,387 +1,203 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
-import React, { useEffect, useRef, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-
-import AsidePasosCrearEvento from "../componentes/creacionEvento/AsidePasosCrearEvento";
-
-// 🔹 API central
-import {
-  type AjusteConfig,
-  type ParticipantesDraft,
-  type PersonalConfig,
-  type ConfigEvento,
-  crearEventoDesdeWizard,
-  guardarPlantillaEvento,
-  obtenerCoverPorTipo,
-  crearPersonalPlantillaPorDefecto,
-} from "../../../api/adminEventosApi";
-
-// 🔹 Tipos exportados para otros componentes del wizard
-export type InfoEventoDraft = {
-  nombre: string;
-  fechaInicioEvento: string;
-  fechaFinEvento: string;
-  fechaInicioInscripciones: string;
-  fechaFinInscripciones: string;
-  descripcion: string;
-  imagenPortadaUrl?: string | null;
-};
-
-export type CrearEventoOutletContext = {
-  infoEvento: InfoEventoDraft;
-  setInfoEvento: Dispatch<SetStateAction<InfoEventoDraft>>;
-  ajuste: AjusteConfig;
-  setAjuste: Dispatch<SetStateAction<AjusteConfig>>;
-  participantes: ParticipantesDraft;
-  setParticipantes: Dispatch<SetStateAction<ParticipantesDraft>>;
-  personal: PersonalConfig;
-  setPersonal: Dispatch<SetStateAction<PersonalConfig>>;
-
-  onCancel: () => void;
-  setSlideDir: (d: "next" | "prev") => void;
-
-  onFinalizar: () => Promise<void>;
-  onGuardarPlantilla: () => Promise<void>;
-};
-
-type NavState = {
-  slideIn?: boolean;
-  plantillaId?: string;
-  plantillaConfig?: Partial<ConfigEvento> | null;
-} | null;
+import React from "react";
 
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const path = location.pathname;
-
-  const slideIn = Boolean((location.state as NavState)?.slideIn);
-  const [exiting, setExiting] = useState(false);
-  const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
-  const [procesando, setProcesando] = useState(false);
-  const plantillaAplicadaRef = useRef(false);
-
-  const exitTimer = useRef<number | undefined>(undefined);
-  void exitTimer;
-
-  const pasoActual = path.endsWith("/informacion")
-    ? 1
-    : path.endsWith("/personal")
-    ? 2
-    : path.endsWith("/integrantes")
-    ? 3
-    : path.endsWith("/ajuste")
-    ? 4
-    : 5;
-
-  // 🔹 Estado de información general del evento
-  const [infoEvento, setInfoEvento] = useState<InfoEventoDraft>({
-    nombre: "",
-    fechaInicioEvento: "",
-    fechaFinEvento: "",
-    fechaInicioInscripciones: "",
-    fechaFinInscripciones: "",
-    descripcion: "",
-    imagenPortadaUrl: null,
-  });
-
-  // 🔹 Estado del "ajuste" del evento (características, costos, tiempos)
-  const [ajuste, setAjuste] = useState<AjusteConfig>({
-    caracteristicas: {
-      asistencia_qr: true,
-      confirmacion_pago: false,
-      envio_correo: true,
-      asistencia_tiempos: false,
-    },
-    envioQR: "correo",
-    costoInscripcion: "",
-    tiempos: [],
-  });
-
-  // 🔹 Estado del diseño de participantes / equipos
-  const baseInmutables = [
-    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
-    {
-      id: "campo-apellido-paterno",
-      nombre: "Apellido paterno",
-      tipo: "texto",
-      immutable: true,
-    },
-    {
-      id: "campo-apellido-materno",
-      nombre: "Apellido materno",
-      tipo: "texto",
-      immutable: true,
-    },
-  ];
-
-  const [participantes, setParticipantes] = useState<ParticipantesDraft>({
-    modo: "individual",
-    maxParticipantes: "",
-    maxEquipos: "",
-    minIntegrantes: "1",
-    maxIntegrantes: "5",
-    seleccion: { asesor: false, lider_equipo: false },
-    camposPorPerfil: {
-      participante: [
-        ...baseInmutables,
-        { id: "campo-correo", nombre: "Correo", tipo: "email" },
-        { id: "campo-telefono", nombre: "Telefono", tipo: "telefono" },
-        {
-          id: "campo-institucion",
-          nombre: "Institución",
-          tipo: "opciones",
-        },
-      ],
-      asesor: [
-        ...baseInmutables,
-        { id: "campo-correo-asesor", nombre: "Correo", tipo: "email" },
-      ],
-      integrante: [
-        ...baseInmutables,
-        {
-          id: "campo-correo-integrante",
-          nombre: "Correo",
-          tipo: "email",
-        },
-        {
-          id: "campo-telefono-integrante",
-          nombre: "Telefono",
-          tipo: "telefono",
-        },
-        {
-          id: "campo-institucion-integrante",
-          nombre: "Institución",
-          tipo: "opciones",
-        },
-      ],
-      lider_equipo: [
-        ...baseInmutables,
-        { id: "campo-correo-lider", nombre: "Correo", tipo: "email" },
-      ],
-    },
-  });
-
-  // 🔹 Estado de roles/campos del personal
-  const [personal, setPersonal] = useState<PersonalConfig>(
-    crearPersonalPlantillaPorDefecto(),
-  );
-
-  const handleCancel = () => {
-    if (exiting) return;
-    setExiting(true);
-  };
-
-  /**
-   * Si venimos desde la galería de plantillas aplicamos la config al wizard
-   * (solo una vez en el primer render para no sobrescribir cambios del usuario).
-   */
-  useEffect(() => {
-    if (plantillaAplicadaRef.current) return;
-
-    const state = location.state as NavState;
-    const plantillaConfig = state?.plantillaConfig;
-
-
-    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
-    if (plantillaConfig?.participantes)
-      setParticipantes(plantillaConfig.participantes);
-    if (plantillaConfig?.personal) setPersonal(plantillaConfig.personal);
-
-
-
-    if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
-      ...prev,
-      ...plantillaConfig.infoEvento,
-    }));
-
-
-    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
-    if (plantillaConfig?.participantes)
-      setParticipantes(plantillaConfig.participantes);
-
-
-    if (plantillaConfig) plantillaAplicadaRef.current = true;
-  }, [location.state]);
-
-  /** Obtiene la config completa actual del wizard */
-  const obtenerConfigActual = (): ConfigEvento => ({
-    infoEvento: {
-      ...infoEvento,
-    },
-    ajuste,
-    participantes,
-    personal,
-  });
-
-  /**
-   * FINALIZAR WIZARD: CREA EL EVENTO EN FIRESTORE + AUDITORÍA
-   */
-  const handleFinalizar = async () => {
-    if (procesando) return;
-    try {
-      setProcesando(true);
-      const cfg = obtenerConfigActual();
-
-      // Validación sencilla
-      if (!cfg.infoEvento.nombre.trim()) {
-        alert("El nombre del evento es obligatorio.");
-        setProcesando(false);
-        return;
-      }
-
-      const eventoId = await crearEventoDesdeWizard(cfg, {
-        plantillaBaseId: (location.state as NavState)?.plantillaId ?? null,
-        actor: {
-          // TODO: reemplazar por tu usuario logueado real
-          uid: "demo-admin-eventos",
-          nombre: "Admin de eventos",
-          correo: "admin@ejemplo.com",
-        },
-      });
-
-      // Redirige al desglose del evento recién creado
-      navigate(`/admin-eventos/evento/${eventoId}`, {
-        replace: true,
-      });
-    } catch (err) {
-      console.error("[Wizard] Error al finalizar evento:", err);
-      alert("Ocurrió un error al crear el evento. Revisa la consola.");
-    } finally {
-      setProcesando(false);
-    }
-  };
-
-  /**
-   * GUARDAR COMO PLANTILLA
-   * Solo guarda config, no nombre ni descripción del evento.
-   */
-  const handleGuardarPlantilla = async () => {
-    if (procesando) return;
-    try {
-      const cfg = obtenerConfigActual();
-
-      const nombrePlantilla = window.prompt(
-        "Nombre para la plantilla de evento:",
-        cfg.infoEvento.nombre || "Plantilla sin nombre",
-      );
-      if (!nombrePlantilla) return;
-
-      const tipo = (window.prompt(
-        'Tipo de plantilla (concurso, foro, curso, robotica, otro):',
-        "concurso",
-      ) || "otro") as any;
-
-      const coverSugerido = obtenerCoverPorTipo(tipo as any);
-      const coverPersonalizado = window.prompt(
-        "URL de imagen de portada para la plantilla (opcional):",
-        coverSugerido,
-      );
-
-      const coverElegido = coverPersonalizado?.trim()
-        ? coverPersonalizado.trim()
-        : coverSugerido;
-
-      await guardarPlantillaEvento(
-        {
-          nombrePlantilla,
-          tipo: (tipo as any) || "otro",
-          coverUrl: coverElegido,
-        },
-        cfg,
-        {
-          uid: "demo-admin-eventos",
-          nombre: "Admin de eventos",
-          correo: "admin@ejemplo.com",
-        },
-      );
-
-      alert("Plantilla guardada correctamente.");
-    } catch (err) {
-      console.error("[Wizard] Error al guardar plantilla:", err);
-      alert("Ocurrió un error al guardar la plantilla.");
-    }
-  };
-
   return (
-    <motion.div
-      className="h-full bg-gradient-to-b from-[#192D69] to-[#6581D6] px-1 md:px-1 py-1 md:py-1 overflow-hidden"
-      initial={slideIn ? { x: -60, opacity: 0, scale: 0.98 } : {}}
-      animate={
-        exiting
-          ? { x: 80, opacity: 0, scale: 0.98 }
-          : { x: 0, opacity: 1, scale: 1 }
-      }
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.28, 1] }}
-      onAnimationComplete={() => {
-        if (exiting) {
-          navigate("/admin-eventos/lista", {
-            state: { animateUp: true },
-          });
-        }
-      }}
-    >
-      <motion.div
-        className="h-[99%] w-[99%] mx-auto bg-white rounded-[32px] shadow-2xl flex overflow-hidden"
-        initial={slideIn ? { x: -30, opacity: 0 } : {}}
-        animate={exiting ? { x: 40, opacity: 0.02 } : { x: 0, opacity: 1 }}
-        transition={{
-          type: "spring",
-          stiffness: 190,
-          damping: 20,
-          mass: 0.6,
-        }}
-      >
-        <AsidePasosCrearEvento
-          pasoActual={pasoActual}
-          onCancel={handleCancel}
-        />
+    // 🔵 FONDO AZUL – ocupa toda la pantalla
+    <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#6581D6] flex justify-center items-center py-10">
+      {/* 🟦 CONTENEDOR BLANCO – mucho más ancho, casi pantalla completa */}
+      <div className="w-[95%] max-w-[1240px] min-h-[560px] bg-white rounded-[32px] shadow-2xl flex overflow-hidden">
+        {/* LADO IZQUIERDO: pasos */}
+        <aside className="w-80 bg-[#F4F2FF] px-10 py-10 flex flex-col border-r border-[#E0DDFB]">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-10">
+            Crear Evento
+          </h2>
 
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pasoActual}
-              initial={{
-                x: slideDir === "next" ? -40 : 40,
-                opacity: 0,
-              }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{
-                x: slideDir === "next" ? 40 : -40,
-                opacity: 0,
-              }}
-              transition={{
-                duration: 0.45,
-                ease: [0.22, 1, 0.28, 1],
-              }}
-              className="h-full"
-            >
-              <Outlet
-                context={
-                  {
-                    infoEvento,
-                    setInfoEvento,
-                    ajuste,
-                    setAjuste,
-                    participantes,
-                    setParticipantes,
-                    personal,
-                    setPersonal,
-                    onCancel: handleCancel,
-                    setSlideDir,
-                    onFinalizar: handleFinalizar,
-                    onGuardarPlantilla: handleGuardarPlantilla,
-                  } as CrearEventoOutletContext
-                }
+          <ol className="space-y-6 text-sm">
+            {/* Paso activo */}
+            <li className="flex items-start gap-3">
+              <div className="flex flex-col items-center pt-1">
+                <div className="h-8 w-8 rounded-2xl bg-[#5B4AE5] text-white flex items-center justify-center text-sm font-semibold shadow-md">
+                  1
+                </div>
+                <div className="w-[2px] flex-1 bg-[#D4D0F7] mt-1" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#5B4AE5] uppercase tracking-[0.15em]">
+                  Información
+                </p>
+                <p className="text-xs text-slate-500 mt-1 max-w-[170px]">
+                  Danos los datos básicos para comenzar con tu evento.
+                </p>
+              </div>
+            </li>
+
+            {/* Paso 2 */}
+            <li className="flex items-start gap-3">
+              <div className="flex flex-col items-center pt-1">
+                <div className="h-8 w-8 rounded-2xl bg-white text-slate-400 border border-[#E0DDFB] flex items-center justify-center text-sm font-semibold">
+                  2
+                </div>
+                <div className="w-[2px] flex-1 bg-[#E5E4FA] mt-1" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-[0.15em]">
+                  Personal
+                </p>
+                <p className="text-xs text-slate-400 mt-1 max-w-[170px]">
+                  Define quién coordina y apoya el evento.
+                </p>
+              </div>
+            </li>
+
+            {/* Paso 3 */}
+            <li className="flex items-start gap-3">
+              <div className="flex flex-col items-center pt-1">
+                <div className="h-8 w-8 rounded-2xl bg-white text-slate-400 border border-[#E0DDFB] flex items-center justify-center text-sm font-semibold">
+                  3
+                </div>
+                <div className="w-[2px] flex-1 bg-[#E5E4FA] mt-1" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-[0.15em]">
+                  Ajuste del evento
+                </p>
+                <p className="text-xs text-slate-400 mt-1 max-w-[170px]">
+                  Configura fechas, cupos y estructura.
+                </p>
+              </div>
+            </li>
+
+            {/* Paso 4 */}
+            <li className="flex items-start gap-3">
+              <div className="flex flex-col items-center pt-1">
+                <div className="h-8 w-8 rounded-2xl bg-white text-slate-400 border border-[#E0DDFB] flex items-center justify-center text-sm font-semibold">
+                  4
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-[0.15em]">
+                  Formulario
+                </p>
+                <p className="text-xs text-slate-400 mt-1 max-w-[170px]">
+                  Define qué datos se capturan en inscripciones y asistencia.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          {/* Botón Cancelar abajo */}
+          <button
+            type="button"
+            className="mt-auto w-full rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white font-semibold py-3 text-sm shadow-md"
+          >
+            Cancelar
+          </button>
+        </aside>
+
+        {/* LADO DERECHO: formulario de información */}
+        <section className="flex-1 px-10 py-10 flex flex-col">
+          <h1 className="text-2xl font-semibold text-slate-900 mb-6">
+            Información del Evento
+          </h1>
+
+          {/* Foto del evento (dropzone) */}
+          <div className="mb-6">
+            <p className="text-xs font-semibold text-slate-700 mb-2">
+              Foto del Evento
+            </p>
+            <div className="border border-dashed border-[#D0D5FF] rounded-2xl h-40 flex flex-col items-center justify-center text-center text-xs text-slate-500 bg-[#F7F7FF]">
+              <div className="mb-2 text-3xl">🖼️</div>
+              <p className="mb-1">
+                <span className="text-[#5B4AE5] font-semibold">
+                  Sube un archivo
+                </span>{" "}
+                o arrástralo aquí
+              </p>
+              <p className="text-[11px] text-slate-400">
+                PNG, JPG o GIF hasta 10MB
+              </p>
+            </div>
+          </div>
+
+          {/* Dos columnas de campos de texto */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">
+                Nombre del evento<span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Exp. InnovaTECNM 2026"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
               />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </motion.div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">
+                Fecha de Finalización del Evento
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/aaaa"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">
+                Fecha de inicio de Inscripciones
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/aaaa"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">
+                Fecha de fin de Inscripciones
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/aaaa"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+              />
+            </div>
+          </div>
+
+          {/* Descripción */}
+          <div className="mb-6">
+            <label className="text-xs font-semibold text-slate-700">
+              Descripción<span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              placeholder="Descripción del evento e información general."
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] resize-none focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+            />
+          </div>
+
+          {/* Footer de pasos y botón Siguiente */}
+          <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+            <span className="text-xs text-slate-400">
+              Paso <span className="font-semibold text-slate-600">1</span> de{" "}
+              <span className="font-semibold text-slate-600">6</span>
+            </span>
+
+            <button
+              type="button"
+              className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md"
+            >
+              Siguiente
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 };
-
-export default PaginaCrearEventoAdminEventos;
