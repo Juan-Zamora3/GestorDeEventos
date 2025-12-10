@@ -28,8 +28,17 @@ export interface RolEvento {
 export interface CampoEvento {
   id: string;
   nombre: string;
-  tipo: "texto" | "numero" | "opciones" | "fecha";
+  tipo:
+    | "texto"
+    | "numero"
+    | "opciones"
+    | "fecha"
+    | "email"
+    | "telefono"
+    | "texto_corto"
+    | "texto_largo";
   immutable?: boolean;
+  config?: { opciones?: string[] };
 }
 
 // 🔹 NUEVO: Info básica del evento para el wizard
@@ -62,12 +71,4 @@ export interface ParticipantesDraft {
   seleccion: Record<"asesor" | "lider_equipo", boolean>;
   camposPorPerfil: Record<PerfilId | string, CampoEvento[]>;
 }
-export interface InfoEventoDraft {
-  nombre: string;
-  fechaInicioEvento: string;
-  fechaFinEvento: string;
-  fechaInicioInscripciones: string;
-  fechaFinInscripciones: string;
-  descripcion: string;
-  imagenPortadaUrl?: string; // 👈 IMPORTANTE
-}
+// (Definición consolidada de InfoEventoDraft se encuentra en la API)

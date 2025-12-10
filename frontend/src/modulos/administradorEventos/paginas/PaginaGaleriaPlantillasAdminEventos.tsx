@@ -189,7 +189,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
                 plantilla={{
                   id: p.id,
                   titulo: p.nombrePlantilla,
-                  imagen: p.coverUrl,
+                  imagen: p.coverUrl ?? "/evento-blanco.png",
                 }}
                 onClick={() => irCrearEventoDesdePlantilla(p)}
               />
