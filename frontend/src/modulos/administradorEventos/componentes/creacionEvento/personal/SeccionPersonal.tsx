@@ -1,118 +1,30 @@
 // src/modulos/administradorEventos/componentes/creacionEvento/SeccionPersonal.tsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FC } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import ModalRolPersonal from "./ModalRolPersonal";
 import ModalCampoEvento from "../ModalCampoEvento";
 import type { RolEvento, CampoEvento } from "../../tiposAdminEventos";
+import { type CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
+import {
+  camposBasePersonal,
+  camposExtraPersonal,
+} from "../../../../api/eventosAdminEventosApi";
 
 type RolUI = RolEvento & { activo?: boolean };
 
-const rolesIniciales: RolUI[] = [
-  {
-    id: "coordinadores",
-    nombre: "Coordinadores",
-    descripcion:
-      "Organizan, planifican y supervisan actividades del evento.",
-    activo: true,
-  },
-  {
-    id: "jurado",
-    nombre: "Jurado",
-    descripcion: "Evalúan y verifican objetivos del evento.",
-    activo: true,
-  },
-  {
-    id: "colaboradores",
-    nombre: "Colaboradores",
-    descripcion: "Apoyan actividades para alcanzar objetivos.",
-    activo: true,
-  },
-  {
-    id: "asesores",
-    nombre: "Asesores",
-    descripcion: "Orientan y brindan apoyo especializado.",
-    activo: false,
-  },
-  {
-    id: "patrocinadores",
-    nombre: "Patrocinadores",
-    descripcion: "Aportan recursos y apoyo.",
-    activo: false,
-  },
-  {
-    id: "invitados",
-    nombre: "Invitados",
-    descripcion: "Participan de manera especial en el evento.",
-    activo: false,
-  },
-  {
-    id: "edecanes",
-    nombre: "Edecanes",
-    descripcion: "Apoyan logística y atención.",
-    activo: false,
-  },
-  {
-    id: "coord-edecanes",
-    nombre: "Coordinadores de edecanes",
-    descripcion: "Supervisan a edecanes.",
-    activo: false,
-  },
-];
-
 const SeccionPersonal: FC = () => {
   const navigate = useNavigate();
-  const { setSlideDir } = useOutletContext<{
-    setSlideDir: (d: "next" | "prev") => void;
-  }>();
+  const { personal, setPersonal, setSlideDir } =
+    useOutletContext<CrearEventoOutletContext>();
 
-  const [roles, setRoles] = useState<RolUI[]>(rolesIniciales);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(
-    rolesIniciales.find((r) => r.activo)?.id,
+  const roles = personal.roles as RolUI[];
+  const camposPorRol = personal.camposPorRol;
+  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(() =>
+    roles.find((r) => r.activo)?.id ?? roles[0]?.id,
   );
-
-  const baseCampos: CampoEvento[] = [
-    {
-      id: "campo-nombre",
-      nombre: "Nombre",
-      tipo: "texto",
-      immutable: true,
-    },
-    {
-      id: "campo-apellido-paterno",
-      nombre: "Apellido paterno",
-      tipo: "texto",
-      immutable: true,
-    },
-    {
-      id: "campo-apellido-materno",
-      nombre: "Apellido materno",
-      tipo: "texto",
-      immutable: true,
-    },
-    {
-      id: "campo-correo",
-      nombre: "Correo",
-      tipo: "texto",
-      immutable: true,
-    },
-  ];
-
-  const extraInicial: CampoEvento[] = [
-    { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
-  ];
-
-  const [camposPorRol, setCamposPorRol] = useState<
-    Record<string, CampoEvento[]>
-  >(() => {
-    const map: Record<string, CampoEvento[]> = {};
-    rolesIniciales.forEach((r) => {
-      map[r.id] = [...baseCampos, ...extraInicial];
-    });
-    return map;
-  });
 
   const [campoSeleccionadoId, setCampoSeleccionadoId] = useState<
     string | undefined
@@ -136,12 +48,21 @@ const SeccionPersonal: FC = () => {
   >(undefined);
 
   const toggleRol = (id: string) => {
-    setRoles((prev) =>
-      prev.map((r) =>
+    setPersonal((prev) => ({
+      ...prev,
+      roles: prev.roles.map((r) =>
         r.id === id ? { ...r, activo: !r.activo } : r,
       ),
-    );
+    }));
   };
+
+  useEffect(() => {
+    if (!selectedRoleId || !roles.some((r) => r.id === selectedRoleId)) {
+      const siguiente = roles.find((r) => r.activo)?.id ?? roles[0]?.id;
+      setSelectedRoleId(siguiente);
+      setCampoSeleccionadoId(undefined);
+    }
+  }, [roles, selectedRoleId]);
 
   const seleccionarRol = (id: string) => {
     setSelectedRoleId(id);
@@ -176,40 +97,44 @@ const SeccionPersonal: FC = () => {
         descripcion: data.descripcion,
         activo: true,
       };
-      setRoles((prev) => [...prev, nuevo]);
-      setCamposPorRol((prev) => ({
+      setPersonal((prev) => ({
         ...prev,
-        [nuevo.id]: [...baseCampos, ...extraInicial],
+        roles: [...prev.roles, nuevo],
+        camposPorRol: {
+          ...prev.camposPorRol,
+          [nuevo.id]: [...camposBasePersonal, ...camposExtraPersonal],
+        },
       }));
       setSelectedRoleId(nuevo.id);
     } else if (modalModo === "editar" && rolEditando) {
-      setRoles((prev) =>
-        prev.map((r) =>
+      setPersonal((prev) => ({
+        ...prev,
+        roles: prev.roles.map((r) =>
           r.id === rolEditando.id
             ? { ...r, nombre: data.nombre, descripcion: data.descripcion }
             : r,
         ),
-      );
+      }));
     }
     setModalAbierto(false);
   };
 
   const manejarEliminar = (id: string) => {
-    setRoles((prev) => {
-      const nuevos = prev.filter((r) => r.id !== id);
-      // Si eliminaste el seleccionado, mueve el foco a otro
+    setPersonal((prev) => {
+      const nuevos = prev.roles.filter((r) => r.id !== id);
+      const { [id]: _, ...rest } = prev.camposPorRol;
+
       if (selectedRoleId === id) {
-        const siguiente =
-          nuevos.find((r) => r.activo) ?? nuevos[0] ?? undefined;
+        const siguiente = nuevos.find((r) => r.activo) ?? nuevos[0] ?? undefined;
         setSelectedRoleId(siguiente?.id);
         setCampoSeleccionadoId(undefined);
       }
-      return nuevos;
-    });
-    setCamposPorRol((prev) => {
-      // elimina también sus campos
-      const { [id]: _, ...rest } = prev;
-      return rest;
+
+      return {
+        ...prev,
+        roles: nuevos,
+        camposPorRol: rest,
+      };
     });
     setModalAbierto(false);
   };
@@ -243,24 +168,33 @@ const SeccionPersonal: FC = () => {
 
   const manejarGuardarCampo = (data: CampoEvento) => {
     if (!selectedRoleId) return;
-    setCamposPorRol((prev) => {
-      const lista = prev[selectedRoleId] ?? [];
+    setPersonal((prev) => {
+      const lista = prev.camposPorRol[selectedRoleId] ?? [];
       if (modalCampoModo === "crear") {
         const nuevo: CampoEvento = {
           id: generarCampoId(),
           nombre: data.nombre,
           tipo: data.tipo,
         };
-        return { ...prev, [selectedRoleId]: [...lista, nuevo] };
+        return {
+          ...prev,
+          camposPorRol: {
+            ...prev.camposPorRol,
+            [selectedRoleId]: [...lista, nuevo],
+          },
+        };
       }
       if (modalCampoModo === "editar" && campoEditando) {
         return {
           ...prev,
-          [selectedRoleId]: lista.map((c) =>
-            c.id === campoEditando.id
-              ? { ...c, nombre: data.nombre, tipo: data.tipo }
-              : c,
-          ),
+          camposPorRol: {
+            ...prev.camposPorRol,
+            [selectedRoleId]: lista.map((c) =>
+              c.id === campoEditando.id
+                ? { ...c, nombre: data.nombre, tipo: data.tipo }
+                : c,
+            ),
+          },
         };
       }
       return prev;
@@ -270,11 +204,14 @@ const SeccionPersonal: FC = () => {
 
   const manejarEliminarCampo = (id: string) => {
     if (!selectedRoleId) return;
-    setCamposPorRol((prev) => ({
+    setPersonal((prev) => ({
       ...prev,
-      [selectedRoleId]: (prev[selectedRoleId] ?? []).filter(
-        (c) => c.id !== id,
-      ),
+      camposPorRol: {
+        ...prev.camposPorRol,
+        [selectedRoleId]: (prev.camposPorRol[selectedRoleId] ?? []).filter(
+          (c) => c.id !== id,
+        ),
+      },
     }));
     setModalCampoAbierto(false);
     setCampoSeleccionadoId(undefined);

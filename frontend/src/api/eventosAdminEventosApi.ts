@@ -45,6 +45,18 @@ export type CampoEvento = {
   immutable?: boolean;
 };
 
+export type RolPersonalConfig = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  activo?: boolean;
+};
+
+export type PersonalConfig = {
+  roles: RolPersonalConfig[];
+  camposPorRol: Record<string, CampoEvento[]>;
+};
+
 export type ParticipantesDraft = {
   modo: "individual" | "equipos";
   maxParticipantes: string;
@@ -111,11 +123,102 @@ const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
   },
 });
 
+export const rolesPersonalBase: RolPersonalConfig[] = [
+  {
+    id: "coordinadores",
+    nombre: "Coordinadores",
+    descripcion: "Organizan, planifican y supervisan actividades del evento.",
+    activo: true,
+  },
+  {
+    id: "jurado",
+    nombre: "Jurado",
+    descripcion: "Evalúan y verifican objetivos del evento.",
+    activo: true,
+  },
+  {
+    id: "colaboradores",
+    nombre: "Colaboradores",
+    descripcion: "Apoyan actividades para alcanzar objetivos.",
+    activo: true,
+  },
+  {
+    id: "asesores",
+    nombre: "Asesores",
+    descripcion: "Orientan y brindan apoyo especializado.",
+    activo: false,
+  },
+  {
+    id: "patrocinadores",
+    nombre: "Patrocinadores",
+    descripcion: "Aportan recursos y apoyo.",
+    activo: false,
+  },
+  {
+    id: "invitados",
+    nombre: "Invitados",
+    descripcion: "Participan de manera especial en el evento.",
+    activo: false,
+  },
+  {
+    id: "edecanes",
+    nombre: "Edecanes",
+    descripcion: "Apoyan logística y atención.",
+    activo: false,
+  },
+  {
+    id: "coord-edecanes",
+    nombre: "Coordinadores de edecanes",
+    descripcion: "Supervisan a edecanes.",
+    activo: false,
+  },
+];
+
+export const camposBasePersonal: CampoEvento[] = [
+  { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
+  {
+    id: "campo-apellido-paterno",
+    nombre: "Apellido paterno",
+    tipo: "texto",
+    immutable: true,
+  },
+  {
+    id: "campo-apellido-materno",
+    nombre: "Apellido materno",
+    tipo: "texto",
+    immutable: true,
+  },
+  {
+    id: "campo-correo",
+    nombre: "Correo",
+    tipo: "texto",
+    immutable: true,
+  },
+];
+
+export const camposExtraPersonal: CampoEvento[] = [
+  { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+];
+
+const crearCamposPorRolPersonal = () => {
+  const mapa: Record<string, CampoEvento[]> = {};
+  rolesPersonalBase.forEach((r) => {
+    mapa[r.id] = [...camposBasePersonal, ...camposExtraPersonal];
+  });
+  return mapa;
+};
+
+export const crearPersonalPlantillaPorDefecto = (): PersonalConfig => ({
+  roles: rolesPersonalBase.map((r) => ({ ...r })),
+  camposPorRol: crearCamposPorRolPersonal(),
+});
+
 /** Configuración completa que se guarda en un evento */
 export type ConfigEvento = {
   infoEvento: InfoEventoConfig;
   ajuste: AjusteConfig;
   participantes: ParticipantesDraft;
+  personal: PersonalConfig;
 };
 
 /**
@@ -199,6 +302,7 @@ export async function crearEventoDesdeWizard(
       infoEvento: config.infoEvento,
       ajuste: config.ajuste,
       participantes: config.participantes,
+      personal: config.personal,
     },
     estado: "activo",
     plantillaBaseId: opciones?.plantillaBaseId ?? null,
@@ -241,6 +345,9 @@ export async function guardarPlantillaEvento(
     config: {
 
       // No persistimos la información específica del evento (nombre, fechas, portada).
+      infoEvento: crearInfoEventoPlantillaVacia(),=======
+
+      // No persistimos la información específica del evento (nombre, fechas, portada).
       infoEvento: crearInfoEventoPlantillaVacia(),
 
       // No persistimos la imagen de portada del paso de información;
@@ -254,8 +361,10 @@ export async function guardarPlantillaEvento(
       infoEvento: configActual.infoEvento,
 
 
+
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
+      personal: configActual.personal,
     },
     createdAt: serverTimestamp(),
     createdBy: actor ?? null,
@@ -285,8 +394,6 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
 
-
-
       coverUrl:
         data.coverUrl ||
         coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
@@ -297,6 +404,9 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
         ajuste: data.config?.ajuste ?? crearAjustePlantillaPorDefecto(),
         participantes:
           data.config?.participantes ?? crearParticipantesPlantillaPorDefecto(),
+
+        personal: data.config?.personal ?? crearPersonalPlantillaPorDefecto(),
+
 
 
       coverUrl: data.coverUrl ?? "/Concurso.png",
@@ -340,6 +450,7 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
             lider_equipo: [],
           },
         },
+
 
       },
       createdAt: data.createdAt,
@@ -408,6 +519,7 @@ export async function cargarConfigEvento(
         lider_equipo: [],
       },
     },
+    personal: cfg.personal ?? crearPersonalPlantillaPorDefecto(),
   };
 }
 

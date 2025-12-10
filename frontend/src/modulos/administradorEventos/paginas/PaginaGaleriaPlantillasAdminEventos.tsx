@@ -81,6 +81,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
           lider_equipo: [],
         },
       },
+      personal: crearPersonalPlantillaPorDefecto(),
     },
     createdAt: null,
     createdBy: undefined,
