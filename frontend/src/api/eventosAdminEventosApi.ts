@@ -74,6 +74,43 @@ export type InfoEventoConfig = {
   imagenPortadaUrl?: string | null;
 };
 
+const crearInfoEventoPlantillaVacia = (): InfoEventoConfig => ({
+  nombre: "",
+  descripcion: "",
+  fechaInicioEvento: "",
+  fechaFinEvento: "",
+  fechaInicioInscripciones: "",
+  fechaFinInscripciones: "",
+  imagenPortadaUrl: null,
+});
+
+const crearAjustePlantillaPorDefecto = (): AjusteConfig => ({
+  caracteristicas: {
+    asistencia_qr: true,
+    confirmacion_pago: false,
+    envio_correo: true,
+    asistencia_tiempos: false,
+  },
+  envioQR: "correo",
+  costoInscripcion: "",
+  tiempos: [],
+});
+
+const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
+  modo: "individual",
+  maxParticipantes: "",
+  maxEquipos: "",
+  minIntegrantes: "1",
+  maxIntegrantes: "5",
+  seleccion: { asesor: false, lider_equipo: false },
+  camposPorPerfil: {
+    participante: [],
+    asesor: [],
+    integrante: [],
+    lider_equipo: [],
+  },
+});
+
 /** Configuración completa que se guarda en un evento */
 export type ConfigEvento = {
   infoEvento: InfoEventoConfig;
@@ -93,7 +130,7 @@ export type PlantillaEvento = {
   nombrePlantilla: string;
   tipo: "concurso" | "foro" | "curso" | "robotica" | "otro";
   coverUrl: string;
-  config: Omit<ConfigEvento, "infoEvento">;
+  config: ConfigEvento;
   createdAt: any;
   createdBy?: {
     uid?: string;
@@ -101,6 +138,17 @@ export type PlantillaEvento = {
     correo?: string;
   };
 };
+
+const coverPorTipo: Record<PlantillaEvento["tipo"], string> = {
+  concurso: "/Concurso.png",
+  foro: "/Foro.png",
+  curso: "/Cursos.png",
+  robotica: "/Robotica.png",
+  otro: "/EventoBlanco.png",
+};
+
+export const obtenerCoverPorTipo = (tipo: PlantillaEvento["tipo"]): string =>
+  coverPorTipo[tipo] ?? coverPorTipo.otro;
 
 /**
  * AUDITORÍA
@@ -189,8 +237,10 @@ export async function guardarPlantillaEvento(
   const plantillaDoc = await addDoc(colRef, {
     nombrePlantilla: datos.nombrePlantilla,
     tipo: datos.tipo,
-    coverUrl: datos.coverUrl,
+    coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
+      // No persistimos la información específica del evento (nombre, fechas, portada).
+      infoEvento: crearInfoEventoPlantillaVacia(),
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
     },
@@ -221,8 +271,16 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       id: d.id,
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
-      coverUrl: data.coverUrl ?? "/Concurso.png",
-      config: data.config,
+      coverUrl:
+        data.coverUrl ||
+        coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
+        "/EventoBlanco.png",
+      config: {
+        infoEvento: crearInfoEventoPlantillaVacia(),
+        ajuste: data.config?.ajuste ?? crearAjustePlantillaPorDefecto(),
+        participantes:
+          data.config?.participantes ?? crearParticipantesPlantillaPorDefecto(),
+      },
       createdAt: data.createdAt,
       createdBy: data.createdBy,
     };
@@ -230,6 +288,13 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
 
   // Puedes añadir aquí una plantilla "en blanco" fija si quieres
   return items;
+}
+
+export async function eliminarPlantillaEvento(
+  plantillaId: string,
+): Promise<void> {
+  const ref = doc(db, "plantillasEvento", plantillaId);
+  await deleteDoc(ref);
 }
 
 /**
