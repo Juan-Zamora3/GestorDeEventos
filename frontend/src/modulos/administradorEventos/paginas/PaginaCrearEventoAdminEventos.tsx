@@ -1,5 +1,5 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +42,11 @@ export type CrearEventoOutletContext = {
   onGuardarPlantilla: () => Promise<void>;
 };
 
-type NavState = { slideIn?: boolean; plantillaId?: string } | null;
+type NavState = {
+  slideIn?: boolean;
+  plantillaId?: string;
+  plantillaConfig?: Partial<ConfigEvento> | null;
+} | null;
 
 export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const location = useLocation();
@@ -53,6 +57,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const [exiting, setExiting] = useState(false);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
   const [procesando, setProcesando] = useState(false);
+  const plantillaAplicadaRef = useRef(false);
 
   const exitTimer = useRef<number | undefined>(undefined);
   void exitTimer;
@@ -159,6 +164,27 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     if (exiting) return;
     setExiting(true);
   };
+
+  /**
+   * Si venimos desde la galería de plantillas aplicamos la config al wizard
+   * (solo una vez en el primer render para no sobrescribir cambios del usuario).
+   */
+  useEffect(() => {
+    if (plantillaAplicadaRef.current) return;
+
+    const state = location.state as NavState;
+    const plantillaConfig = state?.plantillaConfig;
+
+    if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
+      ...prev,
+      ...plantillaConfig.infoEvento,
+    }));
+    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
+    if (plantillaConfig?.participantes)
+      setParticipantes(plantillaConfig.participantes);
+
+    if (plantillaConfig) plantillaAplicadaRef.current = true;
+  }, [location.state]);
 
   /** Obtiene la config completa actual del wizard */
   const obtenerConfigActual = (): ConfigEvento => ({
