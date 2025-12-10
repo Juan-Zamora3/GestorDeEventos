@@ -11,10 +11,13 @@ import {
   type Tiempo,
   type AjusteConfig,
   type ParticipantesDraft,
+  type PersonalConfig,
   type ConfigEvento,
   crearEventoDesdeWizard,
   guardarPlantillaEvento,
   obtenerCoverPorTipo,
+
+  crearPersonalPlantillaPorDefecto,
 } from "../../../api/eventosAdminEventosApi";
 
 // 🔹 Tipos exportados para otros componentes del wizard
@@ -35,6 +38,8 @@ export type CrearEventoOutletContext = {
   setAjuste: Dispatch<SetStateAction<AjusteConfig>>;
   participantes: ParticipantesDraft;
   setParticipantes: Dispatch<SetStateAction<ParticipantesDraft>>;
+  personal: PersonalConfig;
+  setPersonal: Dispatch<SetStateAction<PersonalConfig>>;
 
   onCancel: () => void;
   setSlideDir: (d: "next" | "prev") => void;
@@ -161,6 +166,11 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     },
   });
 
+  // 🔹 Estado de roles/campos del personal
+  const [personal, setPersonal] = useState<PersonalConfig>(
+    crearPersonalPlantillaPorDefecto(),
+  );
+
   const handleCancel = () => {
     if (exiting) return;
     setExiting(true);
@@ -177,6 +187,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     const plantillaConfig = state?.plantillaConfig;
 
 
+    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
+    if (plantillaConfig?.participantes)
+      setParticipantes(plantillaConfig.participantes);
+    if (plantillaConfig?.personal) setPersonal(plantillaConfig.personal);
+
+
 
     if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
       ...prev,
@@ -188,6 +204,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     if (plantillaConfig?.participantes)
       setParticipantes(plantillaConfig.participantes);
 
+
     if (plantillaConfig) plantillaAplicadaRef.current = true;
   }, [location.state]);
 
@@ -198,6 +215,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     },
     ajuste,
     participantes,
+    personal,
   });
 
   /**
@@ -351,6 +369,8 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     setAjuste,
                     participantes,
                     setParticipantes,
+                    personal,
+                    setPersonal,
                     onCancel: handleCancel,
                     setSlideDir,
                     onFinalizar: handleFinalizar,
