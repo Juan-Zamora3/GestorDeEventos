@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   serverTimestamp,
-  setDoc,
   updateDoc,
   deleteDoc,
   getDocs,
@@ -122,6 +121,11 @@ const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
   },
 });
 
+/**
+ * PERSONAL BASE
+ * =============
+ */
+
 export const rolesPersonalBase: RolPersonalConfig[] = [
   {
     id: "coordinadores",
@@ -199,7 +203,7 @@ export const camposExtraPersonal: CampoEvento[] = [
   { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
 ];
 
-const crearCamposPorRolPersonal = () => {
+const crearCamposPorRolPersonal = (): Record<string, CampoEvento[]> => {
   const mapa: Record<string, CampoEvento[]> = {};
   rolesPersonalBase.forEach((r) => {
     mapa[r.id] = [...camposBasePersonal, ...camposExtraPersonal];
@@ -342,25 +346,8 @@ export async function guardarPlantillaEvento(
     tipo: datos.tipo,
     coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
-
-      // No persistimos la información específica del evento (nombre, fechas, portada).
-      infoEvento: crearInfoEventoPlantillaVacia(),=======
-
-      // No persistimos la información específica del evento (nombre, fechas, portada).
+      // En la plantilla NO guardamos la info específica del evento
       infoEvento: crearInfoEventoPlantillaVacia(),
-
-      // No persistimos la imagen de portada del paso de información;
-      // las plantillas usan un ícono por tipo o el que defina el usuario.
-      infoEvento: {
-        ...configActual.infoEvento,
-        imagenPortadaUrl: null,
-      },
-
-      // Se guarda la configuración completa del wizard, incluida la portada
-      infoEvento: configActual.infoEvento,
-
-
-
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
       personal: configActual.personal,
@@ -401,70 +388,19 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       rawConfig.ajuste ?? crearAjustePlantillaPorDefecto();
     const participantes: ParticipantesDraft =
       rawConfig.participantes ?? crearParticipantesPlantillaPorDefecto();
+    const personal: PersonalConfig =
+      rawConfig.personal ?? crearPersonalPlantillaPorDefecto();
 
     return {
       id: d.id,
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
-      tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
-
-      coverUrl:
-        data.coverUrl ||
-        coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
-        "/EventoBlanco.png",
-
+      tipo,
+      coverUrl,
       config: {
-        infoEvento: crearInfoEventoPlantillaVacia(),
-        ajuste: data.config?.ajuste ?? crearAjustePlantillaPorDefecto(),
-        participantes:
-          data.config?.participantes ?? crearParticipantesPlantillaPorDefecto(),
-
-        personal: data.config?.personal ?? crearPersonalPlantillaPorDefecto(),
-
-
-
-      coverUrl: data.coverUrl ?? "/Concurso.png",
-
-      config: data.config ?? {
-        infoEvento: {
-          nombre: "",
-          descripcion: "",
-          fechaInicioEvento: "",
-          fechaFinEvento: "",
-          fechaInicioInscripciones: "",
-          fechaFinInscripciones: "",
-
-          imagenPortadaUrl: null,
-
-          imagenPortadaUrl: data.coverUrl ?? "/Concurso.png",
-
-        },
-        ajuste: {
-          caracteristicas: {
-            asistencia_qr: true,
-            confirmacion_pago: false,
-            envio_correo: true,
-            asistencia_tiempos: false,
-          },
-          envioQR: "correo",
-          costoInscripcion: "",
-          tiempos: [],
-        },
-        participantes: {
-          modo: "individual",
-          maxParticipantes: "",
-          maxEquipos: "",
-          minIntegrantes: "1",
-          maxIntegrantes: "5",
-          seleccion: { asesor: false, lider_equipo: false },
-          camposPorPerfil: {
-            participante: [],
-            asesor: [],
-            integrante: [],
-            lider_equipo: [],
-          },
-        },
-
-
+        infoEvento,
+        ajuste,
+        participantes,
+        personal,
       },
       createdAt: data.createdAt,
       createdBy: data.createdBy,
@@ -506,31 +442,9 @@ export async function cargarConfigEvento(
       fechaFinInscripciones: cfg.infoEvento?.fechaFinInscripciones ?? "",
       imagenPortadaUrl: cfg.infoEvento?.imagenPortadaUrl ?? null,
     },
-    ajuste: cfg.ajuste ?? {
-      caracteristicas: {
-        asistencia_qr: true,
-        confirmacion_pago: false,
-        envio_correo: true,
-        asistencia_tiempos: false,
-      },
-      envioQR: "correo",
-      costoInscripcion: "",
-      tiempos: [],
-    },
-    participantes: cfg.participantes ?? {
-      modo: "individual",
-      maxParticipantes: "",
-      maxEquipos: "",
-      minIntegrantes: "1",
-      maxIntegrantes: "5",
-      seleccion: { asesor: false, lider_equipo: false },
-      camposPorPerfil: {
-        participante: [],
-        asesor: [],
-        integrante: [],
-        lider_equipo: [],
-      },
-    },
+    ajuste: cfg.ajuste ?? crearAjustePlantillaPorDefecto(),
+    participantes:
+      cfg.participantes ?? crearParticipantesPlantillaPorDefecto(),
     personal: cfg.personal ?? crearPersonalPlantillaPorDefecto(),
   };
 }
