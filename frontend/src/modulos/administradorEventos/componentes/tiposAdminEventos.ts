@@ -41,7 +41,7 @@ export interface CampoEvento {
   config?: { opciones?: string[] };
 }
 
-// 🔹 NUEVO: Info básica del evento para el wizard
+// 🔹 Info básica del evento para el wizard
 export interface InfoEventoDraft {
   nombre: string;
   fechaInicioEvento: string;
@@ -71,4 +71,18 @@ export interface ParticipantesDraft {
   seleccion: Record<"asesor" | "lider_equipo", boolean>;
   camposPorPerfil: Record<PerfilId | string, CampoEvento[]>;
 }
-// (Definición consolidada de InfoEventoDraft se encuentra en la API)
+
+// 🔹 NUEVO: Config de roles de personal para el wizard
+export interface RolPersonalConfig {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  // `activo` lo manejamos opcional en la UI, por eso es opcional aquí
+  activo?: boolean;
+}
+
+export interface PersonalConfig {
+  roles: RolPersonalConfig[];
+  // idRol -> lista de campos que se piden para ese rol
+  camposPorRol: Record<string, CampoEvento[]>;
+}

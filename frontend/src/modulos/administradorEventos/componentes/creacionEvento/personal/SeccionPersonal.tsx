@@ -8,7 +8,7 @@ import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import ModalRolPersonal from "./ModalRolPersonal";
 import ModalCampoEvento from "../ModalCampoEvento";
 
-import type { RolEvento, CampoEvento } from "../../tiposAdminEventos";
+import type { RolPersonalConfig, CampoEvento } from "../../tiposAdminEventos";
 import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 
 import {
@@ -16,6 +16,7 @@ import {
   camposExtraPersonal,
 } from "../../../../../api/eventosAdminEventosApi";
 
+// Rol que usamos en la UI (mismo que RolPersonalConfig pero con `activo` opcional)
 type RolUI = RolPersonalConfig & { activo?: boolean };
 
 const SeccionPersonal: FC = () => {
@@ -26,8 +27,8 @@ const SeccionPersonal: FC = () => {
   const roles = personal.roles as RolUI[];
   const camposPorRol = personal.camposPorRol;
 
-  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(() =>
-    roles.find((r) => r.activo)?.id ?? roles[0]?.id,
+  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(
+    () => roles.find((r) => r.activo)?.id ?? roles[0]?.id,
   );
 
   const [campoSeleccionadoId, setCampoSeleccionadoId] = useState<
@@ -35,27 +36,24 @@ const SeccionPersonal: FC = () => {
   >(undefined);
 
   // Modal rol
-  const [modalAbierto, setModalAbierto] = useState<boolean>(false);
+  const [modalAbierto, setModalAbierto] = useState(false);
   const [modalModo, setModalModo] = useState<"crear" | "editar">("crear");
   const [rolEditando, setRolEditando] = useState<RolPersonalConfig | undefined>(
     undefined,
   );
 
   // Modal campo
-  const [modalCampoAbierto, setModalCampoAbierto] =
-    useState<boolean>(false);
-  const [modalCampoModo, setModalCampoModo] = useState<
-    "crear" | "editar"
-  >("crear");
-  const [campoEditando, setCampoEditando] = useState<
-    CampoEvento | undefined
-  >(undefined);
+  const [modalCampoAbierto, setModalCampoAbierto] = useState(false);
+  const [modalCampoModo, setModalCampoModo] = useState<"crear" | "editar">(
+    "crear",
+  );
+  const [campoEditando, setCampoEditando] = useState<CampoEvento | null>(null);
 
   const toggleRol = (id: string) => {
     setPersonal((prev) => ({
       ...prev,
       roles: prev.roles.map((r) =>
-        r.id === id ? { ...r, activo: !r.activo } : r,
+        r.id === id ? { ...r, activo: !(r as RolUI).activo } : r,
       ),
     }));
   };
@@ -129,7 +127,9 @@ const SeccionPersonal: FC = () => {
       const { [id]: _omit, ...rest } = prev.camposPorRol;
 
       if (selectedRoleId === id) {
-        const siguiente = nuevos.find((r) => r.activo) ?? nuevos[0] ?? undefined;
+        const siguiente =
+          (nuevos.find((r) => (r as RolUI).activo) as RolUI | undefined) ??
+          (nuevos[0] as RolUI | undefined);
         setSelectedRoleId(siguiente?.id);
         setCampoSeleccionadoId(undefined);
       }
@@ -155,30 +155,46 @@ const SeccionPersonal: FC = () => {
     if (!idRol) return;
 
     setModalCampoModo("crear");
-    setCampoEditando(undefined);
+    setCampoEditando(null);
     setModalCampoAbierto(true);
   };
 
-  const abrirEditarCampo = (campo: CampoEvento) => {
-    if (campo.immutable) return;
+  /**
+   * Abrir modal de edición de campo a partir del id del campo.
+   * Esto evita problemas de tipos y referencias “stale”.
+   */
+  const abrirEditarCampo = (campoId: string) => {
+    if (!selectedRoleId) return;
+
+    const lista = camposPorRol[selectedRoleId] ?? [];
+    const campo = lista.find((c) => c.id === campoId);
+
+    if (!campo) return;
+    // Si el campo es immutable, no se puede editar
+    if ((campo as any).immutable) return;
+
     setModalCampoModo("editar");
-    setCampoEditando(campo);
+ 
     setModalCampoAbierto(true);
   };
 
   const cerrarModalCampo = () => {
     setModalCampoAbierto(false);
+    setCampoEditando(null);
   };
 
   const manejarGuardarCampo = (data: CampoEvento) => {
     if (!selectedRoleId) return;
+
     setPersonal((prev) => {
       const lista = prev.camposPorRol[selectedRoleId] ?? [];
+
       if (modalCampoModo === "crear") {
         const nuevo: CampoEvento = {
           id: generarCampoId(),
           nombre: data.nombre,
           tipo: data.tipo,
+          config: data.config,
         };
         return {
           ...prev,
@@ -188,6 +204,7 @@ const SeccionPersonal: FC = () => {
           },
         };
       }
+
       if (modalCampoModo === "editar" && campoEditando) {
         return {
           ...prev,
@@ -195,15 +212,23 @@ const SeccionPersonal: FC = () => {
             ...prev.camposPorRol,
             [selectedRoleId]: lista.map((c) =>
               c.id === campoEditando.id
-                ? { ...c, nombre: data.nombre, tipo: data.tipo }
+                ? {
+                    ...c,
+                    nombre: data.nombre,
+                    tipo: data.tipo,
+                    config: data.config,
+                  }
                 : c,
             ),
           },
         };
       }
+
       return prev;
     });
+
     setModalCampoAbierto(false);
+    setCampoEditando(null);
   };
 
   const manejarEliminarCampo = (id: string) => {
@@ -224,9 +249,7 @@ const SeccionPersonal: FC = () => {
   return (
     <section className="flex-1 h-full min-h-0 flex flex-col">
       <div className="px-10 pt-10 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Personal
-        </h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Personal</h1>
         <button
           type="button"
           onClick={abrirCrear}
@@ -244,10 +267,10 @@ const SeccionPersonal: FC = () => {
           </p>
           <div className="mb-3 rounded-xl bg-[#F7F7FF] border border-[#E0DDFB] px-4 py-3">
             <p className="text-[11px] text-slate-600">
-              Haz clic sobre un rol para seleccionarlo (solo uno a la
-              vez). El seleccionado se resalta en lila. Usa el
-              interruptor para activar/inactivar ese rol. Doble clic
-              sobre la tarjeta abre el modal para editar el rol.
+              Haz clic sobre un rol para seleccionarlo (solo uno a la vez). El
+              seleccionado se resalta en lila. Usa el interruptor para
+              activar/inactivar ese rol. Doble clic sobre la tarjeta abre el
+              modal para editar el rol.
             </p>
           </div>
 
@@ -319,13 +342,12 @@ const SeccionPersonal: FC = () => {
 
           <div className="mb-3 rounded-xl bg-[#F7F7FF] border border-[#E0DDFB] px-4 py-3">
             <p className="text-[11px] text-slate-600">
-              Primero selecciona un rol. Los campos predefinidos
-              (Nombre, Apellido paterno, Apellido materno, Correo)
-              aparecen en gris y no se pueden editar ni eliminar. Haz
-              clic en un campo editable para seleccionarlo (resaltado
-              lila). Doble clic abre el modal de edición. Usa “+” para
-              agregar un nuevo campo al rol. Para eliminar un campo
-              editable, ábrelo en modo edición y pulsa el ícono de
+              Primero selecciona un rol. Los campos predefinidos (Nombre,
+              Apellido paterno, Apellido materno, Correo) aparecen en gris y no
+              se pueden editar ni eliminar. Haz clic en un campo editable para
+              seleccionarlo (resaltado lila). Doble clic abre el modal de
+              edición. Usa “+” para agregar un nuevo campo al rol. Para eliminar
+              un campo editable, ábrelo en modo edición y pulsa el ícono de
               basura.
             </p>
           </div>
@@ -334,7 +356,7 @@ const SeccionPersonal: FC = () => {
             <div className="flex flex-wrap gap-3">
               {(camposPorRol[selectedRoleId] ?? []).map((campo) => {
                 const seleccionado = campoSeleccionadoId === campo.id;
-                const noEditable = !!campo.immutable;
+                const noEditable = (campo as any).immutable;
 
                 const baseClase =
                   "inline-flex items-center rounded-full px-4 py-2 text-sm border transition";
@@ -349,7 +371,7 @@ const SeccionPersonal: FC = () => {
                     key={campo.id}
                     type="button"
                     onClick={() => setCampoSeleccionadoId(campo.id)}
-                    onDoubleClick={() => abrirEditarCampo(campo)}
+                    onDoubleClick={() => abrirEditarCampo(campo.id)}
                     className={`${baseClase} ${claseEstado}`}
                   >
                     {campo.nombre}
@@ -391,8 +413,8 @@ const SeccionPersonal: FC = () => {
         key={`${modalCampoModo}-${campoEditando?.id ?? "nuevo"}`}
         abierto={modalCampoAbierto}
         modo={modalCampoModo}
-        campo={campoEditando}
-        onGuardar={manejarGuardarCampo}
+        campo={campoEditando as any}
+        onGuardar={manejarGuardarCampo as any}
         onEliminar={manejarEliminarCampo}
         onCerrar={cerrarModalCampo}
       />
