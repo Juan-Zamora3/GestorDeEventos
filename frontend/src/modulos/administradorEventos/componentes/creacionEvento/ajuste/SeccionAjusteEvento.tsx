@@ -6,11 +6,11 @@ import { FiClock } from "react-icons/fi";
 
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import ModalTiempoEvento from "./ModalTiempoEvento";
+import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 import type {
-  AjusteDraft,
   Tiempo,
-  CrearEventoOutletContext,
-} from "../../../paginas/PaginaCrearEventoAdminEventos";
+  AjusteConfig,
+} from "../../../../../api/eventosAdminEventosApi";
 
 const SeccionAjusteEvento: FC = () => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ const SeccionAjusteEvento: FC = () => {
   const caracteristicas = ajuste.caracteristicas;
 
   // 🔄 Toggle de características, con lógica extra para asistencia_tiempos
-  const toggleCar = (id: keyof AjusteDraft["caracteristicas"]) =>
+  const toggleCar = (id: keyof AjusteConfig["caracteristicas"]) =>
     setAjuste((prev) => {
       const nuevoValor = !prev.caracteristicas[id];
       const nuevasCar = {
@@ -167,7 +167,7 @@ const SeccionAjusteEvento: FC = () => {
                 },
               ].map((opt) => {
                 const key =
-                  opt.id as keyof AjusteDraft["caracteristicas"];
+                  opt.id as keyof AjusteConfig["caracteristicas"];
                 const activo = !!caracteristicas[key];
 
                 return (
@@ -223,7 +223,7 @@ const SeccionAjusteEvento: FC = () => {
                 onChange={(e) =>
                   setAjuste((prev) => ({
                     ...prev,
-                    envioQR: e.target.value,
+                    envioQR: e.target.value as AjusteConfig["envioQR"],
                   }))
                 }
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"

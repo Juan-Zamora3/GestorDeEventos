@@ -1,31 +1,22 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
-
 import React, { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-import type {
-  CampoEvento,
-  ParticipantesDraft,
-} from "../componentes/tiposAdminEventos";
 import AsidePasosCrearEvento from "../componentes/creacionEvento/AsidePasosCrearEvento";
 
-// 🔹 Tipos exportados para reutilizar en otras partes (API, secciones)
-export type Tiempo = {
-  id: string;
-  nombre: string;
-  inicio: string;
-  fin: string;
-};
+// 🔹 API central
+import {
+  type Tiempo,
+  type AjusteConfig,
+  type ParticipantesDraft,
+  type ConfigEvento,
+  crearEventoDesdeWizard,
+  guardarPlantillaEvento,
+} from "../../../api/eventosAdminEventosApi";
 
-export type AjusteDraft = {
-  caracteristicas: Record<string, boolean>;
-  envioQR: string;
-  costoInscripcion: string;
-  tiempos: Tiempo[];
-};
-
+// 🔹 Tipos exportados para otros componentes del wizard
 export type InfoEventoDraft = {
   nombre: string;
   fechaInicioEvento: string;
@@ -33,19 +24,22 @@ export type InfoEventoDraft = {
   fechaInicioInscripciones: string;
   fechaFinInscripciones: string;
   descripcion: string;
-  // 👇 ESTO FALTABA
   imagenPortadaUrl?: string | null;
 };
 
 export type CrearEventoOutletContext = {
   infoEvento: InfoEventoDraft;
   setInfoEvento: Dispatch<SetStateAction<InfoEventoDraft>>;
-  ajuste: AjusteDraft;
-  setAjuste: Dispatch<SetStateAction<AjusteDraft>>;
+  ajuste: AjusteConfig;
+  setAjuste: Dispatch<SetStateAction<AjusteConfig>>;
   participantes: ParticipantesDraft;
   setParticipantes: Dispatch<SetStateAction<ParticipantesDraft>>;
+
   onCancel: () => void;
   setSlideDir: (d: "next" | "prev") => void;
+
+  onFinalizar: () => Promise<void>;
+  onGuardarPlantilla: () => Promise<void>;
 };
 
 type NavState = { slideIn?: boolean; plantillaId?: string } | null;
@@ -58,12 +52,11 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const slideIn = Boolean((location.state as NavState)?.slideIn);
   const [exiting, setExiting] = useState(false);
   const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
+  const [procesando, setProcesando] = useState(false);
 
-  // reservado por si queremos debouncing o cancelar animaciones futuras
   const exitTimer = useRef<number | undefined>(undefined);
   void exitTimer;
 
-  // Determina el paso activo leyendo la URL actual del wizard
   const pasoActual = path.endsWith("/informacion")
     ? 1
     : path.endsWith("/personal")
@@ -74,7 +67,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     ? 4
     : 5;
 
-  // 🔹 Estado local de información general del evento
+  // 🔹 Estado de información general del evento
   const [infoEvento, setInfoEvento] = useState<InfoEventoDraft>({
     nombre: "",
     fechaInicioEvento: "",
@@ -82,11 +75,11 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     fechaInicioInscripciones: "",
     fechaFinInscripciones: "",
     descripcion: "",
-    imagenPortadaUrl: null, // 👈 INICIALIZADO
+    imagenPortadaUrl: null,
   });
 
-  // 🔹 Estado local del "ajuste" del evento (características, costos, tiempos)
-  const [ajuste, setAjuste] = useState<AjusteDraft>({
+  // 🔹 Estado del "ajuste" del evento (características, costos, tiempos)
+  const [ajuste, setAjuste] = useState<AjusteConfig>({
     caracteristicas: {
       asistencia_qr: true,
       confirmacion_pago: false,
@@ -99,13 +92,8 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   });
 
   // 🔹 Estado del diseño de participantes / equipos
-  const baseInmutables: CampoEvento[] = [
-    {
-      id: "campo-nombre",
-      nombre: "Nombre",
-      tipo: "texto",
-      immutable: true,
-    },
+  const baseInmutables = [
+    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
     {
       id: "campo-apellido-paterno",
       nombre: "Apellido paterno",
@@ -130,8 +118,8 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     camposPorPerfil: {
       participante: [
         ...baseInmutables,
-        { id: "campo-correo", nombre: "Correo", tipo: "texto" },
-        { id: "campo-telefono", nombre: "Telefono", tipo: "texto" },
+        { id: "campo-correo", nombre: "Correo", tipo: "email" },
+        { id: "campo-telefono", nombre: "Telefono", tipo: "telefono" },
         {
           id: "campo-institucion",
           nombre: "Institución",
@@ -140,19 +128,19 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       ],
       asesor: [
         ...baseInmutables,
-        { id: "campo-correo-asesor", nombre: "Correo", tipo: "texto" },
+        { id: "campo-correo-asesor", nombre: "Correo", tipo: "email" },
       ],
       integrante: [
         ...baseInmutables,
         {
           id: "campo-correo-integrante",
           nombre: "Correo",
-          tipo: "texto",
+          tipo: "email",
         },
         {
           id: "campo-telefono-integrante",
           nombre: "Telefono",
-          tipo: "texto",
+          tipo: "telefono",
         },
         {
           id: "campo-institucion-integrante",
@@ -162,7 +150,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       ],
       lider_equipo: [
         ...baseInmutables,
-        { id: "campo-correo-lider", nombre: "Correo", tipo: "texto" },
+        { id: "campo-correo-lider", nombre: "Correo", tipo: "email" },
       ],
     },
   });
@@ -170,6 +158,94 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   const handleCancel = () => {
     if (exiting) return;
     setExiting(true);
+  };
+
+  /** Obtiene la config completa actual del wizard */
+  const obtenerConfigActual = (): ConfigEvento => ({
+    infoEvento: {
+      ...infoEvento,
+    },
+    ajuste,
+    participantes,
+  });
+
+  /**
+   * FINALIZAR WIZARD: CREA EL EVENTO EN FIRESTORE + AUDITORÍA
+   */
+  const handleFinalizar = async () => {
+    if (procesando) return;
+    try {
+      setProcesando(true);
+      const cfg = obtenerConfigActual();
+
+      // Validación sencilla
+      if (!cfg.infoEvento.nombre.trim()) {
+        alert("El nombre del evento es obligatorio.");
+        setProcesando(false);
+        return;
+      }
+
+      const eventoId = await crearEventoDesdeWizard(cfg, {
+        plantillaBaseId: (location.state as NavState)?.plantillaId ?? null,
+        actor: {
+          // TODO: reemplazar por tu usuario logueado real
+          uid: "demo-admin-eventos",
+          nombre: "Admin de eventos",
+          correo: "admin@ejemplo.com",
+        },
+      });
+
+      // Redirige al desglose del evento recién creado
+      navigate(`/admin-eventos/evento/${eventoId}`, {
+        replace: true,
+      });
+    } catch (err) {
+      console.error("[Wizard] Error al finalizar evento:", err);
+      alert("Ocurrió un error al crear el evento. Revisa la consola.");
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  /**
+   * GUARDAR COMO PLANTILLA
+   * Solo guarda config, no nombre ni descripción del evento.
+   */
+  const handleGuardarPlantilla = async () => {
+    if (procesando) return;
+    try {
+      const cfg = obtenerConfigActual();
+
+      const nombrePlantilla = window.prompt(
+        "Nombre para la plantilla de evento:",
+        cfg.infoEvento.nombre || "Plantilla sin nombre",
+      );
+      if (!nombrePlantilla) return;
+
+      const tipo = window.prompt(
+        'Tipo de plantilla (concurso, foro, curso, robotica, otro):',
+        "concurso",
+      ) as any;
+
+      await guardarPlantillaEvento(
+        {
+          nombrePlantilla,
+          tipo: tipo || "otro",
+          coverUrl: cfg.infoEvento.imagenPortadaUrl || "/Concurso.png",
+        },
+        cfg,
+        {
+          uid: "demo-admin-eventos",
+          nombre: "Admin de eventos",
+          correo: "admin@ejemplo.com",
+        },
+      );
+
+      alert("Plantilla guardada correctamente.");
+    } catch (err) {
+      console.error("[Wizard] Error al guardar plantilla:", err);
+      alert("Ocurrió un error al guardar la plantilla.");
+    }
   };
 
   return (
@@ -191,7 +267,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       }}
     >
       <motion.div
-        className="h-[99%]  w-[99%] mx-auto bg-white rounded-[32px] shadow-2xl flex overflow-hidden"
+        className="h-[99%] w-[99%] mx-auto bg-white rounded-[32px] shadow-2xl flex overflow-hidden"
         initial={slideIn ? { x: -30, opacity: 0 } : {}}
         animate={exiting ? { x: 40, opacity: 0.02 } : { x: 0, opacity: 1 }}
         transition={{
@@ -236,6 +312,8 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     setParticipantes,
                     onCancel: handleCancel,
                     setSlideDir,
+                    onFinalizar: handleFinalizar,
+                    onGuardarPlantilla: handleGuardarPlantilla,
                   } as CrearEventoOutletContext
                 }
               />

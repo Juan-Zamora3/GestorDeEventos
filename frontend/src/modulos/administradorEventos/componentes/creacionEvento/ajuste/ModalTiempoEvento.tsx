@@ -72,13 +72,20 @@ const ModalTiempoEvento: FC<Props> = ({
     });
   };
 
+  const handleEliminar = () => {
+    // 👇 aquí TypeScript ya no se queja
+    if (tiempo && tiempo.id && onEliminar) {
+      onEliminar(tiempo.id);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4 sm:p-6 overflow-y-auto">
       <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-[560px] max-h-[80vh] overflow-y-auto py-6 px-8">
         {modo === "editar" && tiempo?.id && (
           <button
             type="button"
-            onClick={() => onEliminar && onEliminar(tiempo.id!)}
+            onClick={handleEliminar}
             className="absolute right-4 top-4 p-2 rounded-full text-rose-600 hover:bg-rose-50"
             aria-label="Eliminar"
           >

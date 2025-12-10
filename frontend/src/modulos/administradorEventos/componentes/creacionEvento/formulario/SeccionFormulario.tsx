@@ -1,18 +1,16 @@
+// src/modulos/administradorEventos/componentes/creacionEvento/SeccionFormulario.tsx
 import type { FC } from "react";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { FiMoreVertical, FiPlus } from "react-icons/fi";
 
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
-import ModalPreguntaFormulario from "./ModalPreguntaFormulario";
+import ModalPreguntaFormulario, {
+  type TipoCampo,
+  type PreguntaForm,
+} from "./ModalPreguntaFormulario";
 import type { CampoEvento } from "../../tiposAdminEventos";
 import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
-import { crearEventoConConfiguracion } from "../../../../../api/adminEventosApi";
-
-import type {
-  TipoCampo,
-  PreguntaForm,
-} from "./ModalPreguntaFormulario";
 
 const genId = () => `preg-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -94,8 +92,13 @@ const labelTipo = (t: TipoCampo) => {
 const SeccionFormulario: FC = () => {
   const navigate = useNavigate();
 
-  const { participantes, ajuste, infoEvento, setSlideDir } =
-    useOutletContext<CrearEventoOutletContext>();
+  const {
+    participantes,
+    ajuste,
+    infoEvento,
+    setSlideDir,
+    onFinalizar,
+  } = useOutletContext<CrearEventoOutletContext>();
 
   const modo = participantes.modo;
 
@@ -106,9 +109,7 @@ const SeccionFormulario: FC = () => {
     undefined,
   );
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
-  const [modalModo, setModalModo] = useState<"crear" | "editar">(
-    "crear",
-  );
+  const [modalModo, setModalModo] = useState<"crear" | "editar">("crear");
   const [preguntaEditando, setPreguntaEditando] = useState<
     PreguntaForm | undefined
   >(undefined);
@@ -152,7 +153,8 @@ const SeccionFormulario: FC = () => {
     setModalAbierto(false);
   };
 
-  const mapCampoToPregunta = (c: CampoEvento): PreguntaForm => {
+  // 👉 no dependemos de que CampoEvento tenga "id"
+  const mapCampoToPregunta = (c: CampoEvento, idx: number): PreguntaForm => {
     const nombre = c.nombre;
     const tipo: TipoCampo =
       c.tipo === "numero"
@@ -168,7 +170,7 @@ const SeccionFormulario: FC = () => {
         : "texto_corto";
 
     return {
-      id: `auto-${c.id}`,
+      id: `auto-campo-${idx}`,
       nombre,
       tipo,
       placeholder: "sección de registro",
@@ -187,8 +189,8 @@ const SeccionFormulario: FC = () => {
 
     if (modo === "individual") {
       (participantes.camposPorPerfil["participante"] ?? []).forEach(
-        (c) => {
-          const p = mapCampoToPregunta(c);
+        (c, idx) => {
+          const p = mapCampoToPregunta(c as CampoEvento, idx);
           auto.push({
             ...p,
             source: "participantes",
@@ -280,7 +282,7 @@ const SeccionFormulario: FC = () => {
       setGuardando(true);
       setError(null);
 
-      // Validaciones básicas antes de pegarle al API
+      // Validaciones básicas antes de crear el evento
       if (!infoEvento.nombre.trim()) {
         setError("El nombre del evento es obligatorio.");
         setGuardando(false);
@@ -313,29 +315,8 @@ const SeccionFormulario: FC = () => {
         return;
       }
 
-      const preguntasPayload = todasPreguntas.map((p) => ({
-        nombre: p.nombre,
-        tipo: p.tipo,
-        placeholder: p.placeholder ?? "",
-        obligatorio: p.obligatorio ?? false,
-        opciones: p.config?.opciones ?? [],
-        source:
-          (p as any).source ??
-          ((p as any).locked ? "participantes" : "manual"),
-      }));
-
-      await crearEventoConConfiguracion({
-        infoEvento,
-        ajuste,
-        participantes,
-        preguntas: preguntasPayload,
-      });
-
-      setSlideDir("next");
-      navigate("/admin-eventos/lista", {
-        replace: true,
-        state: { animateUp: true, created: true },
-      });
+      // Aquí podrías integrar "todasPreguntas" a la config global si lo necesitas.
+      await onFinalizar(); // Firestore + auditoría centralizada
     } catch (err: unknown) {
       console.error("[SeccionFormulario] Error al crear evento", err);
       if (err instanceof Error && err.message) {
@@ -378,8 +359,8 @@ const SeccionFormulario: FC = () => {
             <span className="font-semibold">
               {modo === "individual" ? "Individual" : "Equipos"}
             </span>
-            ) y los campos obligatorios vienen de la sección
-            Participantes. No es editable aquí.
+            ) y los campos obligatorios vienen de la sección Participantes. No
+            es editable aquí.
           </p>
         </div>
 
@@ -402,10 +383,7 @@ const SeccionFormulario: FC = () => {
               </thead>
               <tbody>
                 {preguntasConReglas().map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-t border-slate-100"
-                  >
+                  <tr key={p.id} className="border-t border-slate-100">
                     <td className="px-4 py-2 text-slate-800">
                       {p.nombre}
                     </td>

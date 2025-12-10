@@ -3,11 +3,7 @@
 import type { FC, DragEvent, ChangeEvent } from "react";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-} from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../../../../../firebase/firebaseConfig";
 import FooterAdminEventos from "../../comunes/FooterAdminEventos";
 import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
@@ -172,7 +168,7 @@ const SeccionInformacionEvento: FC = () => {
       return;
     }
 
-    // Todo bien → siguiente sección
+    // ✅ Todo bien → siguiente sección
     setSlideDir("next");
     navigate("../personal");
   };
@@ -192,6 +188,7 @@ const SeccionInformacionEvento: FC = () => {
           </div>
         )}
 
+        {/* Imagen del evento */}
         <div className="mb-6">
           <p className="text-xs font-semibold text-slate-700 mb-2">
             Foto del Evento
@@ -267,6 +264,7 @@ const SeccionInformacionEvento: FC = () => {
           )}
         </div>
 
+        {/* Fechas y nombre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-700">
@@ -359,6 +357,7 @@ const SeccionInformacionEvento: FC = () => {
           </div>
         </div>
 
+        {/* Descripción */}
         <div className="mb-6">
           <label className="text-xs font-semibold text-slate-700">
             Descripción<span className="text-red-500">*</span>

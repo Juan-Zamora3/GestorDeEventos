@@ -1,3 +1,4 @@
+// src/modulos/administradorEventos/componentes/creacionEvento/ModalPreguntaFormulario.tsx
 import { useState, useEffect } from "react";
 import type { FC } from "react";
 import { FiTrash2 } from "react-icons/fi";
