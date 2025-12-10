@@ -7,7 +7,6 @@ import type { PlantillaEvento } from "../../../api/eventosAdminEventosApi";
 import {
   obtenerPlantillasEvento,
   eliminarPlantillaEvento,
-  crearPersonalPlantillaPorDefecto,
 } from "../../../api/eventosAdminEventosApi";
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
@@ -109,7 +108,6 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
         plantillaConfig: {
           ajuste: plantilla.config?.ajuste,
           participantes: plantilla.config?.participantes,
-          personal: plantilla.config?.personal,
         },
       },
     });

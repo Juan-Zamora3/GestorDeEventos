@@ -16,6 +16,7 @@ import {
   crearEventoDesdeWizard,
   guardarPlantillaEvento,
   obtenerCoverPorTipo,
+
   crearPersonalPlantillaPorDefecto,
 } from "../../../api/eventosAdminEventosApi";
 
@@ -185,10 +186,24 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     const state = location.state as NavState;
     const plantillaConfig = state?.plantillaConfig;
 
+
     if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
     if (plantillaConfig?.participantes)
       setParticipantes(plantillaConfig.participantes);
     if (plantillaConfig?.personal) setPersonal(plantillaConfig.personal);
+
+
+
+    if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
+      ...prev,
+      ...plantillaConfig.infoEvento,
+    }));
+
+
+    if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
+    if (plantillaConfig?.participantes)
+      setParticipantes(plantillaConfig.participantes);
+
 
     if (plantillaConfig) plantillaAplicadaRef.current = true;
   }, [location.state]);
