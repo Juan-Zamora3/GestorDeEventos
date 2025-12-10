@@ -1,5 +1,6 @@
 // src/modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos.tsx
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   addDoc,
   collection,
@@ -9,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebaseConfig";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { FiUser, FiUsers } from "react-icons/fi";
 
 type Paso = 1 | 2 | 3 | 4 | 5;
 type ModalidadRegistro = "individual" | "equipos";
@@ -36,6 +38,10 @@ interface CampoFormulario {
   obligatorio: boolean;
   bloqueado?: boolean;
 }
+
+type PerfilId = "participante" | "integrante" | "lider_equipo" | "asesor";
+type TipoCampoPerfil = "texto" | "numero" | "opciones" | "fecha";
+type CampoPerfil = { id: string; nombre: string; tipo: TipoCampoPerfil; immutable?: boolean };
 
 // ---- Defaults reutilizables para cargar plantilla o iniciar en blanco ----
 const ROLES_PERSONAL_DEFAULT: RolPersonal[] = [
@@ -91,30 +97,6 @@ const ROLES_PERSONAL_DEFAULT: RolPersonal[] = [
 
 const CAMPOS_FORMULARIO_DEFAULT: CampoFormulario[] = [
   {
-    id: "nombre",
-    nombreCampo: "Nombre",
-    tipoCampo: "texto_corto",
-    ejemplo: "sección de registro",
-    obligatorio: true,
-    bloqueado: true,
-  },
-  {
-    id: "ap_paterno",
-    nombreCampo: "Apellido paterno",
-    tipoCampo: "texto_corto",
-    ejemplo: "sección de registro",
-    obligatorio: true,
-    bloqueado: true,
-  },
-  {
-    id: "ap_materno",
-    nombreCampo: "Apellido materno",
-    tipoCampo: "texto_corto",
-    ejemplo: "sección de registro",
-    obligatorio: true,
-    bloqueado: true,
-  },
-  {
     id: "correo",
     nombreCampo: "Correo",
     tipoCampo: "email",
@@ -165,8 +147,31 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     useState<string>("coordinadores");
 
   const [modalNuevoRolAbierto, setModalNuevoRolAbierto] = useState(false);
+  const [modoRol, setModoRol] = useState<"crear" | "editar">("crear");
+  const [rolEditandoId, setRolEditandoId] = useState<string | null>(null);
   const [nuevoRolNombre, setNuevoRolNombre] = useState("");
   const [nuevoRolDescripcion, setNuevoRolDescripcion] = useState("");
+
+  type TipoCampoRol = "texto" | "numero" | "opciones" | "fecha";
+  type CampoRol = { id: string; nombre: string; tipo: TipoCampoRol; immutable?: boolean };
+  const baseCamposRol: CampoRol[] = [
+    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
+    { id: "campo-apellido-paterno", nombre: "Apellido paterno", tipo: "texto", immutable: true },
+    { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
+    { id: "campo-correo", nombre: "Correo", tipo: "texto", immutable: true },
+  ];
+  const extraInicialRol: CampoRol = { id: "campo-institucion", nombre: "Institución", tipo: "opciones" };
+  const [camposPorRol, setCamposPorRol] = useState<Record<string, CampoRol[]>>(() => {
+    const map: Record<string, CampoRol[]> = {};
+    ROLES_PERSONAL_DEFAULT.forEach((r) => {
+      map[r.id] = [...baseCamposRol, extraInicialRol];
+    });
+    return map;
+  });
+  const [modalCampoRolAbierto, setModalCampoRolAbierto] = useState(false);
+  const [campoRolEditandoId, setCampoRolEditandoId] = useState<string | null>(null);
+  const [campoRolNombre, setCampoRolNombre] = useState("");
+  const [campoRolTipo, setCampoRolTipo] = useState<TipoCampoRol>("texto");
 
   // ----- Paso 3: Integrantes / Participantes -----
   const [modalidadRegistro, setModalidadRegistro] =
@@ -177,6 +182,32 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     useState(false);
   const [categoriaNombre, setCategoriaNombre] = useState("");
   const [categoriaCupo, setCategoriaCupo] = useState("");
+  const [maxEquipos, setMaxEquipos] = useState<string>("");
+  const [minIntegrantes, setMinIntegrantes] = useState<string>("1");
+  const [maxIntegrantes, setMaxIntegrantes] = useState<string>("5");
+  const [selAsesor, setSelAsesor] = useState(false);
+  const [selLiderEquipo, setSelLiderEquipo] = useState(false);
+  const baseInmutablesPerfil: CampoPerfil[] = [
+    { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
+    { id: "campo-apellido-paterno", nombre: "Apellido paterno", tipo: "texto", immutable: true },
+    { id: "campo-apellido-materno", nombre: "Apellido materno", tipo: "texto", immutable: true },
+  ];
+  const extrasDefaultPerfil: CampoPerfil[] = [
+    { id: "campo-correo", nombre: "Correo", tipo: "texto" },
+    { id: "campo-telefono", nombre: "Telefono", tipo: "numero" },
+    { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+  ];
+  const [camposPorPerfil, setCamposPorPerfil] = useState<Record<PerfilId, CampoPerfil[]>>({
+    participante: [...baseInmutablesPerfil, ...extrasDefaultPerfil],
+    integrante: [...baseInmutablesPerfil, ...extrasDefaultPerfil],
+    lider_equipo: [...baseInmutablesPerfil, { id: "campo-correo-lider", nombre: "Correo", tipo: "texto" }],
+    asesor: [...baseInmutablesPerfil, { id: "campo-correo-asesor", nombre: "Correo", tipo: "texto" }],
+  });
+  const [perfilSeleccionadoId, setPerfilSeleccionadoId] = useState<PerfilId>("participante");
+  const [modalCampoPerfilAbierto, setModalCampoPerfilAbierto] = useState(false);
+  const [campoPerfilEditandoId, setCampoPerfilEditandoId] = useState<string | null>(null);
+  const [campoPerfilNombre, setCampoPerfilNombre] = useState("");
+  const [campoPerfilTipo, setCampoPerfilTipo] = useState<TipoCampoPerfil>("texto");
 
   // ----- Paso 4: Ajustes del evento -----
   const [tomarAsistenciaQR, setTomarAsistenciaQR] = useState(true);
@@ -239,6 +270,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
 
   const esPasoActivo = (id: Paso) => id === paso;
   const esPasoCompletado = (id: Paso) => id < paso;
+  const [slideDir, setSlideDir] = useState<"next" | "prev">("next");
 
   // ----------------- CARGAR PLANTILLA SI VIENE EN LA URL -----------------
   useEffect(() => {
@@ -276,6 +308,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             ? (per.roles as RolPersonal[])
             : ROLES_PERSONAL_DEFAULT
         );
+        const initMap: Record<string, CampoRol[]> = {};
+        const rolesArr: RolPersonal[] = Array.isArray(per.roles) && per.roles.length > 0 ? (per.roles as RolPersonal[]) : ROLES_PERSONAL_DEFAULT;
+        rolesArr.forEach((r) => {
+          initMap[r.id] = [...baseCamposRol, extraInicialRol];
+        });
+        setCamposPorRol(initMap);
 
         setModalidadRegistro(
           (part.modalidadRegistro as ModalidadRegistro) ?? "individual"
@@ -290,6 +328,37 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
             ? (part.categorias as CategoriaEvento[])
             : []
         );
+        setMaxEquipos(
+          part.maxEquipos != null ? String(part.maxEquipos) : ""
+        );
+        setMinIntegrantes(
+          part.minIntegrantes != null ? String(part.minIntegrantes) : "1"
+        );
+        setMaxIntegrantes(
+          part.maxIntegrantes != null ? String(part.maxIntegrantes) : "5"
+        );
+        if (part.seleccion) {
+          setSelAsesor(Boolean(part.seleccion.asesor));
+          setSelLiderEquipo(Boolean(part.seleccion.lider_equipo));
+        } else {
+          setSelAsesor(false);
+          setSelLiderEquipo(false);
+        }
+        if (part.camposPorPerfil) {
+          const map = part.camposPorPerfil as Record<string, any[]>;
+          const next: Record<PerfilId, CampoPerfil[]> = { ...camposPorPerfil };
+          (Object.keys(map) as string[]).forEach((k) => {
+            const kk = k as PerfilId;
+            const arr = Array.isArray(map[k]) ? map[k] : [];
+            next[kk] = arr.map((c: any) => ({
+              id: String(c.id ?? `campo_${Math.random().toString(36).slice(2, 8)}`),
+              nombre: String(c.nombre ?? c.nombreCampo ?? ""),
+              tipo: (c.tipo as TipoCampoPerfil) ?? "texto",
+              immutable: Boolean(c.immutable ?? c.bloqueado ?? false),
+            }));
+          });
+          setCamposPorPerfil(next);
+        }
 
         setTomarAsistenciaQR(
           aj.tomarAsistenciaQR !== undefined ? aj.tomarAsistenciaQR : true
@@ -422,6 +491,11 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       modalidadRegistro,
       maxParticipantes: maxParticipantes ? Number(maxParticipantes) : null,
       categorias,
+      seleccion: { asesor: selAsesor, lider_equipo: selLiderEquipo },
+      maxEquipos: maxEquipos ? Number(maxEquipos) : null,
+      minIntegrantes: minIntegrantes ? Number(minIntegrantes) : null,
+      maxIntegrantes: maxIntegrantes ? Number(maxIntegrantes) : null,
+      camposPorPerfil: camposPorPerfil,
     },
     ajustes: {
       tomarAsistenciaQR,
@@ -494,6 +568,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     if (!validarPaso(paso)) return;
 
     if (paso < 5) {
+      setSlideDir("next");
       setPaso((p) => (p + 1) as Paso);
       return;
     }
@@ -503,31 +578,99 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
 
   const irAnterior = () => {
     if (paso > 1) {
+      setSlideDir("prev");
       setPaso((p) => (p - 1) as Paso);
     }
   };
 
   // ----------------- HANDLERS DE MODALES -----------------
   const abrirModalNuevoRol = () => {
+    setModoRol("crear");
+    setRolEditandoId(null);
     setNuevoRolNombre("");
     setNuevoRolDescripcion("");
     setModalNuevoRolAbierto(true);
   };
 
+  const abrirModalEditarRol = (rol: RolPersonal) => {
+    setModoRol("editar");
+    setRolEditandoId(rol.id);
+    setNuevoRolNombre(rol.nombre);
+    setNuevoRolDescripcion(rol.descripcion);
+    setModalNuevoRolAbierto(true);
+  };
+
   const guardarNuevoRol = () => {
     if (!nuevoRolNombre.trim()) return;
-    const id = `custom_${Date.now()}`;
-    setRolesPersonal((prev) => [
-      ...prev,
-      {
-        id,
-        nombre: nuevoRolNombre.trim(),
-        descripcion: nuevoRolDescripcion.trim(),
-        activo: true,
-      },
-    ]);
-    setRolSeleccionadoId(id);
+    if (modoRol === "crear") {
+      const id = `custom_${Date.now()}`;
+      setRolesPersonal((prev) => [
+        ...prev,
+        {
+          id,
+          nombre: nuevoRolNombre.trim(),
+          descripcion: nuevoRolDescripcion.trim(),
+          activo: true,
+        },
+      ]);
+      setCamposPorRol((prev) => ({ ...prev, [id]: [...baseCamposRol, extraInicialRol] }));
+      setRolSeleccionadoId(id);
+    } else if (modoRol === "editar" && rolEditandoId) {
+      setRolesPersonal((prev) =>
+        prev.map((r) =>
+          r.id === rolEditandoId
+            ? { ...r, nombre: nuevoRolNombre.trim(), descripcion: nuevoRolDescripcion.trim() }
+            : r
+        )
+      );
+    }
     setModalNuevoRolAbierto(false);
+  };
+
+  const abrirModalCampoRolNuevo = () => {
+    setCampoRolEditandoId(null);
+    setCampoRolNombre("");
+    setCampoRolTipo("texto");
+    setModalCampoRolAbierto(true);
+  };
+
+  const abrirModalCampoRolEditar = (campo: CampoRol) => {
+    if (campo.immutable) return;
+    setCampoRolEditandoId(campo.id);
+    setCampoRolNombre(campo.nombre);
+    setCampoRolTipo(campo.tipo);
+    setModalCampoRolAbierto(true);
+  };
+
+  const guardarCampoRol = () => {
+    if (!rolSeleccionadoId || !campoRolNombre.trim()) return;
+    setCamposPorRol((prev) => {
+      const lista = prev[rolSeleccionadoId] ?? [];
+      if (campoRolEditandoId) {
+        return {
+          ...prev,
+          [rolSeleccionadoId]: lista.map((c) =>
+            c.id === campoRolEditandoId ? { ...c, nombre: campoRolNombre.trim(), tipo: campoRolTipo } : c
+          ),
+        };
+      }
+      const nuevo: CampoRol = {
+        id: `campo_${Date.now()}`,
+        nombre: campoRolNombre.trim(),
+        tipo: campoRolTipo,
+      };
+      return { ...prev, [rolSeleccionadoId]: [...lista, nuevo] };
+    });
+    setModalCampoRolAbierto(false);
+  };
+
+  const eliminarCampoRol = (id: string) => {
+    if (!rolSeleccionadoId) return;
+    setCamposPorRol((prev) => ({
+      ...prev,
+      [rolSeleccionadoId]: (prev[rolSeleccionadoId] ?? []).filter((c) => c.id !== id),
+    }));
+    setModalCampoRolAbierto(false);
   };
 
   const abrirModalNuevaCategoria = () => {
@@ -557,6 +700,51 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     setCampoEjemplo("");
     setCampoObligatorio(true);
     setModalCampoAbierto(true);
+  };
+
+  const abrirModalCampoPerfilNuevo = () => {
+    setCampoPerfilEditandoId(null);
+    setCampoPerfilNombre("");
+    setCampoPerfilTipo("texto");
+    setModalCampoPerfilAbierto(true);
+  };
+
+  const abrirModalCampoPerfilEditar = (campo: CampoPerfil) => {
+    if (campo.immutable) return;
+    setCampoPerfilEditandoId(campo.id);
+    setCampoPerfilNombre(campo.nombre);
+    setCampoPerfilTipo(campo.tipo);
+    setModalCampoPerfilAbierto(true);
+  };
+
+  const guardarCampoPerfil = () => {
+    if (!campoPerfilNombre.trim()) return;
+    setCamposPorPerfil((prev) => {
+      const lista = prev[perfilSeleccionadoId] ?? [];
+      if (campoPerfilEditandoId) {
+        return {
+          ...prev,
+          [perfilSeleccionadoId]: lista.map((c) =>
+            c.id === campoPerfilEditandoId ? { ...c, nombre: campoPerfilNombre.trim(), tipo: campoPerfilTipo } : c
+          ),
+        };
+      }
+      const nuevo: CampoPerfil = {
+        id: `campo_${Date.now()}`,
+        nombre: campoPerfilNombre.trim(),
+        tipo: campoPerfilTipo,
+      };
+      return { ...prev, [perfilSeleccionadoId]: [...lista, nuevo] };
+    });
+    setModalCampoPerfilAbierto(false);
+  };
+
+  const eliminarCampoPerfil = (id: string) => {
+    setCamposPorPerfil((prev) => ({
+      ...prev,
+      [perfilSeleccionadoId]: (prev[perfilSeleccionadoId] ?? []).filter((c) => c.id !== id),
+    }));
+    setModalCampoPerfilAbierto(false);
   };
 
   const abrirModalCampoEditar = (campo: CampoFormulario) => {
@@ -654,6 +842,32 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div className="space-y-1">
           <label className="text-xs font-semibold text-slate-700">
+            Fecha de inicio de Inscripciones
+            <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={fechaInicioInscripciones}
+            onChange={(e) => setFechaInicioInscripciones(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-slate-700">
+            Fecha de fin de Inscripciones
+            <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={fechaFinInscripciones}
+            onChange={(e) => setFechaFinInscripciones(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-slate-700">
             Nombre del evento<span className="text-red-500">*</span>
           </label>
           <input
@@ -691,35 +905,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-700">
-            Fecha de inicio de Inscripciones
-            <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={fechaInicioInscripciones}
-            onChange={(e) =>
-              setFechaInicioInscripciones(e.target.value)
-            }
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-slate-700">
-            Fecha de fin de Inscripciones
-            <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={fechaFinInscripciones}
-            onChange={(e) =>
-              setFechaFinInscripciones(e.target.value)
-            }
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]"
-          />
-        </div>
+        
       </div>
 
       <div className="mb-6">
@@ -776,6 +962,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                     : "border-slate-200 bg-white"
                 }`}
                 onClick={() => setRolSeleccionadoId(rol.id)}
+                onDoubleClick={() => abrirModalEditarRol(rol)}
               >
                 <div>
                   <h3
@@ -817,40 +1004,52 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-slate-700 mb-2">
-            Campos necesarios
-          </p>
-          <p className="text-[11px] text-slate-500 mb-2">
-            Los campos predeterminados (Nombre, Apellido paterno,
-            Apellido materno, Correo, Institución) se usan para el
-            staff y no se pueden eliminar.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              "Nombre",
-              "Apellido paterno",
-              "Apellido materno",
-              "Correo",
-              "Institución",
-            ].map((campo) => (
-              <span
-                key={campo}
-                className="px-3 py-1 rounded-full bg-slate-100 text-[11px] text-slate-700"
-              >
-                {campo}
-              </span>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-slate-700">Campos necesarios</p>
+            <button
+              type="button"
+              onClick={abrirModalCampoRolNuevo}
+              className="h-9 w-9 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white shadow-md flex items-center justify-center"
+            >
+              +
+            </button>
           </div>
+          <p className="text-[11px] text-slate-500 mb-2">
+            Selecciona un rol. Los campos base aparecen en gris y no pueden editarse ni eliminarse. Haz doble clic en un campo editable para abrir la edición.
+          </p>
+          {rolSeleccionadoId ? (
+            <div className="flex flex-wrap gap-2">
+              {(camposPorRol[rolSeleccionadoId] ?? []).map((c) => {
+                const noEditable = !!c.immutable;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onDoubleClick={() => abrirModalCampoRolEditar(c)}
+                    className={`px-3 py-1 rounded-full text-[11px] border ${
+                      noEditable
+                        ? "bg-slate-200 text-slate-600 border-slate-300"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-[#EFF0FF] hover:text-[#5B4AE5] hover:border-[#C9C5FF]"
+                    }`}
+                  >
+                    {c.nombre}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Selecciona un rol para configurar sus campos.</p>
+          )}
         </div>
 
-        {rolSeleccionado && (
-          <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-            <p className="font-semibold mb-1">
-              Rol seleccionado: {rolSeleccionado.nombre}
-            </p>
-            <p>{rolSeleccionado.descripcion}</p>
-          </div>
-        )}
+      {rolSeleccionado && (
+        <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <p className="font-semibold mb-1">
+            Rol seleccionado: {rolSeleccionado.nombre}
+          </p>
+          <p>{rolSeleccionado.descripcion}</p>
+        </div>
+      )}
       </>
     );
   };
@@ -861,32 +1060,48 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         Participantes
       </h1>
 
-      <div className="mb-4">
-        <p className="text-xs font-semibold text-slate-700 mb-2">
-          Modalidad
-        </p>
-        <div className="inline-flex rounded-full bg-slate-100 p-1 text-xs">
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-slate-700 mb-2">Modalidad</p>
+        <div className="flex flex-wrap gap-4">
           <button
             type="button"
-            className={`px-4 py-2 rounded-full font-medium ${
-              modalidadRegistro === "individual"
-                ? "bg-white text-[#5B4AE5] shadow-sm"
-                : "text-slate-500"
-            }`}
+            aria-label="Modo Individual"
             onClick={() => setModalidadRegistro("individual")}
+            className={`flex items-center gap-3 rounded-3xl px-4 py-3 border transition w-full sm:w-auto shadow-sm ${
+              modalidadRegistro === "individual"
+                ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-[#F8F8FF]"
+            }`}
           >
-            Individual
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+              modalidadRegistro === "individual" ? "bg-[#E7E6FF] text-[#5B4AE5]" : "bg-slate-100 text-slate-600"
+            }`}>
+              <FiUser size={20} />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-semibold">Individual</p>
+              <p className="text-[11px] text-slate-500">Cada participante se registra por separado</p>
+            </div>
           </button>
           <button
             type="button"
-            className={`px-4 py-2 rounded-full font-medium ${
-              modalidadRegistro === "equipos"
-                ? "bg-white text-[#5B4AE5] shadow-sm"
-                : "text-slate-500"
-            }`}
+            aria-label="Modo por equipos"
             onClick={() => setModalidadRegistro("equipos")}
+            className={`flex items-center gap-3 rounded-3xl px-4 py-3 border transition w-full sm:w-auto shadow-sm ${
+              modalidadRegistro === "equipos"
+                ? "bg-[#EFF0FF] border-[#C9C5FF] text-[#5B4AE5]"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-[#F8F8FF]"
+            }`}
           >
-            Por equipos
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+              modalidadRegistro === "equipos" ? "bg-[#E7E6FF] text-[#5B4AE5]" : "bg-slate-100 text-slate-600"
+            }`}>
+              <FiUsers size={20} />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-semibold">Por equipos</p>
+              <p className="text-[11px] text-slate-500">Los participantes forman equipos</p>
+            </div>
           </button>
         </div>
       </div>
@@ -943,30 +1158,92 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         )}
       </div>
 
+      {modalidadRegistro === "equipos" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700">Máx. equipos participantes</label>
+            <input type="number" min={1} placeholder="ej. 50" value={maxEquipos} onChange={(e) => setMaxEquipos(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700">Mín. integrantes por equipo</label>
+            <input type="number" min={1} placeholder="ej. 1" value={minIntegrantes} onChange={(e) => setMinIntegrantes(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700">Máx. integrantes por equipo</label>
+            <input type="number" min={1} placeholder="ej. 5" value={maxIntegrantes} onChange={(e) => setMaxIntegrantes(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-[#F9FAFF] focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+          </div>
+        </div>
+      )}
+
       <div>
-        <p className="text-xs font-semibold text-slate-700 mb-2">
-          Campos necesarios para participantes
-        </p>
-        <p className="text-[11px] text-slate-500 mb-2">
-          Estos campos se convierten en variables y parte del
-          formulario de inscripción.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {[
-            "Nombre",
-            "Apellido paterno",
-            "Apellido materno",
-            "Correo",
-            "Telefono",
-            "Institución",
-          ].map((campo) => (
-            <span
-              key={campo}
-              className="px-3 py-1 rounded-full bg-slate-100 text-[11px] text-slate-700"
-            >
-              {campo}
-            </span>
-          ))}
+        <p className="text-xs font-semibold text-slate-700 mb-2">Selección de perfiles</p>
+        <div className={`grid grid-cols-1 ${modalidadRegistro === "equipos" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-3 mb-4`}>
+          {(modalidadRegistro === "equipos"
+            ? [
+                { id: "integrante" as PerfilId, titulo: "Integrante", toggle: false },
+                { id: "lider_equipo" as PerfilId, titulo: "Líder de equipo", toggle: true },
+                { id: "asesor" as PerfilId, titulo: "Asesor", toggle: true },
+              ]
+            : [
+                { id: "participante" as PerfilId, titulo: "Participante", toggle: false },
+                { id: "asesor" as PerfilId, titulo: "Asesor", toggle: true },
+              ]
+          ).map((opt) => {
+            const activo = perfilSeleccionadoId === opt.id;
+            const switchOn = opt.id === "asesor" ? selAsesor : opt.id === "lider_equipo" ? selLiderEquipo : true;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setPerfilSeleccionadoId(opt.id)}
+                className={`text-left rounded-3xl border px-5 py-4 transition min-h-[90px] shadow-sm ${activo ? "bg-[#EFF0FF] border-[#A5A0FF]" : switchOn ? "bg-white border-slate-200 hover:bg-[#F8F8FF] hover:border-[#C9C5FF]" : "bg-white border-slate-200"}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-xs font-semibold ${activo ? "text-[#5B4AE5]" : switchOn ? "text-slate-700" : "text-slate-400"}`}>{opt.titulo}</span>
+                  {opt.toggle && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (opt.id === "asesor") setSelAsesor((v) => !v);
+                        if (opt.id === "lider_equipo") setSelLiderEquipo((v) => !v);
+                      }}
+                      className={`h-5 w-10 rounded-full transition ${switchOn ? "bg-[#5B4AE5]" : "bg-slate-300"}`}
+                    >
+                      <span className={`block h-5 w-5 bg-white rounded-full shadow transform transition ${switchOn ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
+                  )}
+                </div>
+                <p className={`text-[11px] ${switchOn ? "text-slate-500" : "text-slate-400"}`}>Variables del perfil.</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-700">Campos necesarios para {perfilSeleccionadoId}</p>
+          <button type="button" onClick={abrirModalCampoPerfilNuevo} className="h-9 w-9 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white shadow-md flex items-center justify-center">+</button>
+        </div>
+        <div className="mb-1 rounded-xl bg-[#F7F7FF] border border-[#E0DDFB] px-4 py-3">
+          <p className="text-[11px] text-slate-600">Los siguientes campos se convierten en variables y parte del formulario de inscripción. Los inmutables aparecen en gris.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {(camposPorPerfil[perfilSeleccionadoId] ?? []).map((campo) => {
+            const noEditable = !!campo.immutable;
+            const baseClase = `inline-flex items-center rounded-full px-4 py-2 text-sm border transition`;
+            const claseEstado = noEditable ? "bg-slate-200 text-slate-600 border-slate-300" : "bg-white text-slate-700 border-slate-300 hover:bg-[#EFF0FF] hover:text-[#5B4AE5] hover:border-[#C9C5FF]";
+            return (
+              <button
+                key={campo.id}
+                type="button"
+                onClick={() => void 0}
+                onDoubleClick={() => abrirModalCampoPerfilEditar(campo)}
+                className={`${baseClase} ${claseEstado}`}
+              >
+                {campo.nombre}
+              </button>
+            );
+          })}
         </div>
       </div>
     </>
@@ -1159,78 +1436,79 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
         obligatorios vienen de la sección Participantes. Aquí puedes
         agregar campos adicionales.
       </p>
-
-      <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
-        <table className="w-full">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="text-left px-4 py-2 font-semibold">
-                Nombre del Campo
-              </th>
-              <th className="text-left px-4 py-2 font-semibold">
-                Tipo de Campo
-              </th>
-              <th className="text-left px-4 py-2 font-semibold">
-                Texto de ejemplo
-              </th>
-              <th className="text-left px-4 py-2 font-semibold">
-                Obligatorio
-              </th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {camposFormulario.map((campo) => (
-              <tr
-                key={campo.id}
-                className="border-t border-slate-100 hover:bg-slate-50/70"
-              >
-                <td className="px-4 py-2">
-                  {campo.nombreCampo}
-                  {campo.bloqueado && (
-                    <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                      Bloqueado
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-2">
-                  {campo.tipoCampo === "texto_corto" && "Texto corto"}
-                  {campo.tipoCampo === "email" && "Email"}
-                  {campo.tipoCampo === "telefono" && "Teléfono"}
-                  {campo.tipoCampo === "seleccion_multiple" &&
-                    "Selección múltiple"}
-                </td>
-                <td className="px-4 py-2">{campo.ejemplo}</td>
-                <td className="px-4 py-2">
-                  {campo.obligatorio ? "Sí" : "No"}
-                </td>
-                <td className="px-4 py-2 text-right space-x-2">
-                  {!campo.bloqueado && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => abrirModalCampoEditar(campo)}
-                        className="text-[#5B4AE5] hover:underline"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          eliminarCampoFormulario(campo.id)
-                        }
-                        className="text-red-500 hover:underline"
-                      >
-                        Eliminar
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const baseIdsOcultas = new Set(["nombre", "ap_paterno", "ap_materno"]);
+        const baseBloqueados = camposFormulario.filter((c) => c.bloqueado && !baseIdsOcultas.has(c.id));
+        const adicionales = camposFormulario.filter((c) => !c.bloqueado);
+        const secciones: { nombre: string; tipo: string; ejemplo: string; obligatorio: boolean; key: string }[] = [];
+        if (modalidadRegistro === "equipos") {
+          secciones.push({ nombre: "Nombre del Equipo", tipo: "Equipo", ejemplo: "ej. Astros", obligatorio: true, key: "equipo_nombre" });
+          if (selAsesor) secciones.push({ nombre: "Asesor", tipo: "Asesor", ejemplo: "sección de registro", obligatorio: true, key: "seccion_asesor" });
+          if (selLiderEquipo) secciones.push({ nombre: "Líder de Equipo", tipo: "Líder de Equipo", ejemplo: "sección de registro", obligatorio: true, key: "seccion_lider" });
+          const maxI = Number(maxIntegrantes) || 0;
+          const minI = Number(minIntegrantes) || 0;
+          for (let i = 1; i <= maxI; i++) {
+            secciones.push({ nombre: `Integrante ${i}`, tipo: "Integrante", ejemplo: "sección de registro", obligatorio: i <= minI, key: `seccion_integrante_${i}` });
+          }
+        }
+        return (
+          <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Nombre del Campo</th>
+                  <th className="text-left px-4 py-2 font-semibold">Tipo de Campo</th>
+                  <th className="text-left px-4 py-2 font-semibold">texto de ejemplo</th>
+                  <th className="text-left px-4 py-2 font-semibold">Obligatorio</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {secciones.map((s) => (
+                  <tr key={s.key} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{s.nombre}</td>
+                    <td className="px-4 py-2">{s.tipo}</td>
+                    <td className="px-4 py-2">{s.ejemplo}</td>
+                    <td className="px-4 py-2">{s.obligatorio ? "Sí" : "No"}</td>
+                    <td className="px-4 py-2" />
+                  </tr>
+                ))}
+                {baseBloqueados.map((campo) => (
+                  <tr key={campo.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+                    <td className="px-4 py-2">{campo.nombreCampo}</td>
+                    <td className="px-4 py-2">
+                      {campo.tipoCampo === "texto_corto" && "Texto corto"}
+                      {campo.tipoCampo === "email" && "Email"}
+                      {campo.tipoCampo === "telefono" && "Teléfono"}
+                      {campo.tipoCampo === "seleccion_multiple" && "Selección múltiple"}
+                    </td>
+                    <td className="px-4 py-2">{campo.ejemplo}</td>
+                    <td className="px-4 py-2">{campo.obligatorio ? "Sí" : "No"}</td>
+                    <td className="px-4 py-2" />
+                  </tr>
+                ))}
+                {adicionales.map((campo) => (
+                  <tr key={campo.id} className="border-t border-slate-100 hover:bg-slate-50/70">
+                    <td className="px-4 py-2">{campo.nombreCampo}</td>
+                    <td className="px-4 py-2">
+                      {campo.tipoCampo === "texto_corto" && "Texto corto"}
+                      {campo.tipoCampo === "email" && "Email"}
+                      {campo.tipoCampo === "telefono" && "Teléfono"}
+                      {campo.tipoCampo === "seleccion_multiple" && "Selección múltiple"}
+                    </td>
+                    <td className="px-4 py-2">{campo.ejemplo}</td>
+                    <td className="px-4 py-2">{campo.obligatorio ? "Sí" : "No"}</td>
+                    <td className="px-4 py-2 text-right space-x-2">
+                      <button type="button" onClick={() => abrirModalCampoEditar(campo)} className="text-[#5B4AE5] hover:underline">Editar</button>
+                      <button type="button" onClick={() => eliminarCampoFormulario(campo.id)} className="text-red-500 hover:underline">Eliminar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
     </>
   );
 
@@ -1246,10 +1524,10 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#6581D6] flex justify-center items-center py-10">
+    <motion.div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#6581D6] flex justify-center items-center py-10" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="w-[95%] max-w-[1240px] min-h-[560px] bg-white rounded-[32px] shadow-2xl flex overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-80 bg-[#F4F2FF] px-10 py-10 flex flex-col border-r border-[#E0DDFB]">
+        <motion.aside className="w-80 bg-[#F4F2FF] px-10 py-10 flex flex-col border-r border-[#E0DDFB]" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.35 }}>
           <h2 className="text-2xl font-semibold text-slate-900 mb-10">
             Crear Evento
           </h2>
@@ -1306,16 +1584,20 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           >
             Cancelar
           </button>
-        </aside>
+        </motion.aside>
 
         {/* Contenido principal */}
         <section className="flex-1 px-10 py-10 flex flex-col">
           <div className="flex-1">
-            {paso === 1 && renderPaso1()}
-            {paso === 2 && renderPaso2()}
-            {paso === 3 && renderPaso3()}
-            {paso === 4 && renderPaso4()}
-            {paso === 5 && renderPaso5()}
+            <AnimatePresence mode="wait">
+              <motion.div key={paso} initial={{ x: slideDir === "next" ? 30 : -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: slideDir === "next" ? -30 : 30, opacity: 0 }} transition={{ duration: 0.25 }}>
+                {paso === 1 && renderPaso1()}
+                {paso === 2 && renderPaso2()}
+                {paso === 3 && renderPaso3()}
+                {paso === 4 && renderPaso4()}
+                {paso === 5 && renderPaso5()}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-100">
@@ -1387,9 +1669,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       {modalNuevoRolAbierto && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
           <div className="bg-white rounded-3xl w-full max-w-md px-8 py-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Agregar personal nuevo
-            </h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">{modoRol === "crear" ? "Agregar personal" : "Editar personal"}</h3>
             <div className="space-y-3 mb-5">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
@@ -1431,7 +1711,7 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
                 onClick={guardarNuevoRol}
                 className="px-6 py-2 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md"
               >
-                Agregar
+                {modoRol === "crear" ? "Agregar" : "Guardar"}
               </button>
             </div>
           </div>
@@ -1595,6 +1875,68 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Modal agregar/editar campo por rol (Personal) */}
+      {modalCampoRolAbierto && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
+          <div className="bg-white rounded-3xl w-full max-w-md px-8 py-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">{campoRolEditandoId ? "Editar campo del rol" : "Agregar campo al rol"}</h3>
+            <div className="space-y-3 mb-5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Nombre del campo</label>
+                <input type="text" value={campoRolNombre} onChange={(e) => setCampoRolNombre(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Tipo</label>
+                <select value={campoRolTipo} onChange={(e) => setCampoRolTipo(e.target.value as TipoCampoRol)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]">
+                  <option value="texto">Texto</option>
+                  <option value="numero">Número</option>
+                  <option value="opciones">Opciones</option>
+                  <option value="fecha">Fecha</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setModalCampoRolAbierto(false)} className="px-5 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50">Cancelar</button>
+              <button type="button" onClick={guardarCampoRol} className="px-6 py-2 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Guardar</button>
+              {campoRolEditandoId && (
+                <button type="button" onClick={() => eliminarCampoRol(campoRolEditandoId)} className="px-6 py-2 rounded-full bg-rose-500 text-white text-sm font-semibold shadow-md">Eliminar</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal agregar/editar campo de perfil (Participantes) */}
+      {modalCampoPerfilAbierto && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40">
+          <div className="bg-white rounded-3xl w-full max-w-md px-8 py-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">{campoPerfilEditandoId ? "Editar campo" : "Agregar campo"} — {perfilSeleccionadoId}</h3>
+            <div className="space-y-3 mb-5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Nombre del campo</label>
+                <input type="text" value={campoPerfilNombre} onChange={(e) => setCampoPerfilNombre(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Tipo</label>
+                <select value={campoPerfilTipo} onChange={(e) => setCampoPerfilTipo(e.target.value as TipoCampoPerfil)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#5B4AE5]/40 focus:border-[#5B4AE5]">
+                  <option value="texto">Texto</option>
+                  <option value="numero">Número</option>
+                  <option value="opciones">Opciones</option>
+                  <option value="fecha">Fecha</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setModalCampoPerfilAbierto(false)} className="px-5 py-2 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50">Cancelar</button>
+              <button type="button" onClick={guardarCampoPerfil} className="px-6 py-2 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold shadow-md">Guardar</button>
+              {campoPerfilEditandoId && (
+                <button type="button" onClick={() => eliminarCampoPerfil(campoPerfilEditandoId)} className="px-6 py-2 rounded-full bg-rose-500 text-white text-sm font-semibold shadow-md">Eliminar</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 };
