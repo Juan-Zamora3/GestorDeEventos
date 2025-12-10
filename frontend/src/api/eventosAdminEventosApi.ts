@@ -1,4 +1,4 @@
- // src/api/eventosAdminEventosApi.ts
+// src/api/eventosAdminEventosApi.ts
 // API y tipos compartidos del módulo Administrador de Eventos (Firebase/Firestore).
 
 import {
@@ -13,18 +13,81 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
-// Tipos del frontend (no los duplicamos, solo los reusamos)
-import type {
-  AjusteConfig,
-  ParticipantesDraft,
-  CampoEvento,
-  PersonalConfig,
-} from "../modulos/administradorEventos/tiposAdminEventos";
+// Tipos centrales usados en el wizard y en los listados de eventos/plantillas
+export type CampoEvento = {
+  id: string;
+  nombre: string;
+  tipo:
+    | "texto"
+    | "numero"
+    | "opciones"
+    | "fecha"
+    | "email"
+    | "telefono"
+    | "texto_corto"
+    | "texto_largo";
+  immutable?: boolean;
+  config?: { opciones?: string[] };
+};
 
-import type { InfoEventoDraft } from "../modulos/administradorEventos/paginas/PaginaCrearEventoAdminEventos";
+export type Tiempo = {
+  id: string;
+  nombre: string;
+  inicio: string;
+  fin: string;
+};
 
-// Reexportamos para que otros archivos puedan importar desde aquí
-export type { AjusteConfig, ParticipantesDraft };
+export type AjusteConfig = {
+  caracteristicas: {
+    asistencia_qr: boolean;
+    confirmacion_pago: boolean;
+    envio_correo: boolean;
+    asistencia_tiempos: boolean;
+  };
+  envioQR: "correo" | "whatsapp" | "ambos";
+  costoInscripcion: string;
+  tiempos: Tiempo[];
+};
+
+export type PerfilId =
+  | "participante"
+  | "asesor"
+  | "integrante"
+  | "lider_equipo";
+
+export type ParticipantesDraft = {
+  modo: "individual" | "equipos";
+  maxParticipantes: string;
+  maxEquipos: string;
+  minIntegrantes: string;
+  maxIntegrantes: string;
+  seleccion: Record<"asesor" | "lider_equipo", boolean>;
+  camposPorPerfil: Record<PerfilId | string, CampoEvento[]>;
+};
+
+export type RolPersonalConfig = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  activo?: boolean;
+};
+
+export type PersonalConfig = {
+  roles: RolPersonalConfig[];
+  camposPorRol: Record<string, CampoEvento[]>;
+};
+
+export type InfoEventoDraft = {
+  nombre: string;
+  fechaInicioEvento: string;
+  fechaFinEvento: string;
+  fechaInicioInscripciones: string;
+  fechaFinInscripciones: string;
+  descripcion: string;
+  imagenPortadaUrl?: string | null;
+};
+
+// (Los tipos ya se exportan de forma nominal arriba)
 
 // ---------------------------------------------------------
 // Tipos para plantillas de evento

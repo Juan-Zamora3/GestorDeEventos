@@ -9,12 +9,12 @@ import ModalRolPersonal from "./ModalRolPersonal";
 import ModalCampoEvento from "../ModalCampoEvento";
 
 import type { RolEvento, CampoEvento } from "../../tiposAdminEventos";
-import type { CrearEventoOutletContext } from "../../paginas/PaginaCrearEventoAdminEventos";
+import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 
 import {
   camposBasePersonal,
   camposExtraPersonal,
-} from "../../../../api/eventosAdminEventosApi";
+} from "../../../../../api/eventosAdminEventosApi";
 
 type RolUI = RolEvento & { activo?: boolean };
 

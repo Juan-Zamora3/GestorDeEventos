@@ -94,7 +94,6 @@ const SeccionFormulario: FC = () => {
 
   const {
     participantes,
-    ajuste,
     infoEvento,
     setSlideDir,
     onFinalizar,
@@ -191,7 +190,7 @@ const SeccionFormulario: FC = () => {
 
     if (modo === "individual") {
       (participantes.camposPorPerfil["participante"] ?? []).forEach(
-        (c, idx) => {
+        (c: CampoEvento, idx: number) => {
           const p = mapCampoToPregunta(c as CampoEvento, idx);
           auto.push({
             ...p,
