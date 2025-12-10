@@ -339,6 +339,22 @@ export async function guardarPlantillaEvento(
   configActual: ConfigEvento,
   actor?: AuditoriaAdminEventos["actor"],
 ): Promise<string> {
+  const personalSanitizado: PersonalConfig = {
+    roles: (configActual.personal?.roles ?? rolesPersonalBase).map((r) => ({
+      ...r,
+    })),
+    camposPorRol: Object.fromEntries(
+      Object.entries(
+        configActual.personal?.camposPorRol ?? crearCamposPorRolPersonal(),
+      ).map(([rolId, campos]) => [
+        rolId,
+        campos.map((c) => ({
+          ...c,
+        })),
+      ]),
+    ),
+  };
+
   const colRef = collection(db, "plantillasEvento");
 
   const plantillaDoc = await addDoc(colRef, {
@@ -350,7 +366,7 @@ export async function guardarPlantillaEvento(
       infoEvento: crearInfoEventoPlantillaVacia(),
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
-      personal: configActual.personal,
+      personal: personalSanitizado,
     },
     createdAt: serverTimestamp(),
     createdBy: actor ?? null,
