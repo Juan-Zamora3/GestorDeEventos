@@ -1,46 +1,34 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GridEventosAdmin from "../componentes/GridEventosAdmin";
 import type { EventoCard } from "../componentes/tiposAdminGeneral";
 import { FiSearch, FiChevronDown, FiGrid, FiList } from "react-icons/fi";
+import { obtenerEventosAdminGeneral } from "../../../api/adminGeneralApi";
 
-const eventosDummy: EventoCard[] = [
-  {
-    id: 1,
-    titulo: "Concurso de Robótica Junior",
-    tipo: "Concurso",
-    fechaInicio: "12/08/2026",
-    fechaFin: "20/08/2026",
-    equipos: "5 equipos",
-    personas: "20 personas",
-    imagen: "/login-campus.png",
-    activo: true,
-  },
-  {
-    id: 2,
-    titulo: "Curso de Programación en C++",
-    tipo: "Curso",
-    fechaInicio: "12/08/2026",
-    fechaFin: "20/08/2026",
-    equipos: "5 equipos",
-    personas: "20 personas",
-    imagen: "/login-campus.png",
-    activo: true,
-  },
-  {
-    id: 3,
-    titulo: "Congreso Nacional de Ingeniería",
-    tipo: "Congreso",
-    fechaInicio: "12/08/2026",
-    fechaFin: "20/08/2026",
-    equipos: "5 equipos",
-    personas: "20 personas",
-    imagen: "/login-campus.png",
-    activo: true,
-  },
-  // agrega más si quieres
-];
+const useEventos = () => {
+  const [eventos, setEventos] = useState<EventoCard[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await obtenerEventosAdminGeneral();
+        if (mounted) setEventos(res);
+      } catch {
+        setError("No se pudieron cargar los eventos");
+      } finally {
+        if (mounted) setCargando(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  return { eventos, cargando, error };
+};
 
 export const PaginaAuditoriaAdminGeneral: React.FC = () => {
+  const { eventos, cargando, error } = useEventos();
   const [query, setQuery] = useState("");
   const [tipo, setTipo] = useState<"Todos" | NonNullable<EventoCard["tipo"]>>("Todos");
   const [estado, setEstado] = useState<"Todos" | "Activos" | "Finalizados">("Todos");
@@ -58,14 +46,14 @@ export const PaginaAuditoriaAdminGeneral: React.FC = () => {
 
   const eventosFiltrados = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return eventosDummy.filter((e) => {
+    return eventos.filter((e) => {
       const byQuery = !q || [e.titulo, e.fechaInicio, e.fechaFin, e.equipos, e.personas]
         .some((v) => (v ?? "").toLowerCase().includes(q));
       const byTipo = tipo === "Todos" || e.tipo === tipo;
       const byEstado = estado === "Todos" || (estado === "Activos" ? e.activo : !e.activo);
       return byQuery && byTipo && byEstado;
     });
-  }, [query, tipo, estado]);
+  }, [eventos, query, tipo, estado]);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -157,6 +145,12 @@ export const PaginaAuditoriaAdminGeneral: React.FC = () => {
       </section>
 
       {/* Grid de eventos */}
+      {cargando && (
+        <div className="text-[12px] text-slate-500 px-2 py-4">Cargando eventos...</div>
+      )}
+      {error && (
+        <div className="text-[12px] text-red-600 px-2 py-4">{error}</div>
+      )}
       {vista === "grid" ? (
         <GridEventosAdmin eventos={eventosFiltrados} />
       ) : (

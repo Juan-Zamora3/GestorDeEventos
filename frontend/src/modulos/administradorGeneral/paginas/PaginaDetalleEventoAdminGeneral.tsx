@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
+import { obtenerEventoAdminGeneralPorId } from "../../../api/adminGeneralApi";
 
 import type { EventoCard } from "../componentes/tiposAdminGeneral";
 
@@ -33,6 +34,7 @@ type TabId = (typeof tabs)[number]["id"];
 export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams<{ id: string }>();
 
   const { evento: eventoFromState } = (location.state || {}) as LocationState;
 
@@ -49,7 +51,16 @@ export const PaginaDetalleEventoAdminGeneral: React.FC = () => {
     activo: true,
   };
 
-  const evento: EventoCard = eventoFromState ?? fallbackEvento;
+  const [evento, setEvento] = useState<EventoCard>(eventoFromState ?? fallbackEvento);
+
+  useEffect(() => {
+    if (!eventoFromState && typeof id === "string" && id) {
+      (async () => {
+        const ev = await obtenerEventoAdminGeneralPorId(id);
+        if (ev) setEvento(ev);
+      })();
+    }
+  }, [eventoFromState, id]);
 
   const [tabActiva, setTabActiva] = useState<TabId>("informacion");
 
