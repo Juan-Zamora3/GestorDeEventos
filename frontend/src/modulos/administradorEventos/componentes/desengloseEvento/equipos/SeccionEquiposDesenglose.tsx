@@ -13,6 +13,7 @@ import {
   query as fsQuery,
   where,
 } from "firebase/firestore";
+import type { ParticipantesDraft } from "../../../../../api/eventosAdminEventosApi";
 
 interface EquipoItem {
   id: string;
@@ -34,6 +35,8 @@ const SeccionEquiposDesenglose: FC = () => {
   const [modoRegistro, setModoRegistro] = useState<"individual" | "equipos">(
     "individual",
   );
+  const [participantesConfig, setParticipantesConfig] =
+    useState<ParticipantesDraft | null>(null);
 
   // Carga config del evento + equipos
   useEffect(() => {
@@ -53,11 +56,13 @@ const SeccionEquiposDesenglose: FC = () => {
         const eventoSnap = await getDoc(eventoRef);
         const data = eventoSnap.data() as any | undefined;
 
+        const participantesCfg: ParticipantesDraft | undefined =
+          data?.config?.participantes ?? data?.config?.participantesConfig;
+
         const modo =
-          data?.config?.participantes?.modo === "equipos"
-            ? "equipos"
-            : "individual";
+          participantesCfg?.modo === "equipos" ? "equipos" : "individual";
         setModoRegistro(modo);
+        setParticipantesConfig(participantesCfg ?? null);
 
         // 2) leer equipos solo si el modo permite equipos
         if (modo === "equipos") {
@@ -102,6 +107,17 @@ const SeccionEquiposDesenglose: FC = () => {
     );
   }, [equipos, query]);
 
+  const maxEquiposPermitidos = useMemo(() => {
+    if (participantesConfig?.modo !== "equipos") return undefined;
+    const valor = parseInt(participantesConfig.maxEquipos || "", 10);
+    return Number.isFinite(valor) && valor > 0 ? valor : undefined;
+  }, [participantesConfig]);
+
+  const limiteEquiposAlcanzado = useMemo(() => {
+    if (maxEquiposPermitidos === undefined) return false;
+    return equipos.length >= maxEquiposPermitidos;
+  }, [equipos.length, maxEquiposPermitidos]);
+
   if (cargando) {
     return (
       <section className="px-6 sm:px-10 py-6">
@@ -121,23 +137,54 @@ const SeccionEquiposDesenglose: FC = () => {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            disabled={modoEsIndividual}
+            disabled={modoEsIndividual || limiteEquiposAlcanzado}
             className={`px-5 py-2.5 rounded-full text-sm font-semibold ${
               modoEsIndividual
                 ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                : "bg-[#5B4AE5] text-white shadow hover:bg-[#4A3FD0]"
+                : limiteEquiposAlcanzado
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-[#5B4AE5] text-white shadow hover:bg-[#4A3FD0]"
             }`}
           >
-            Nuevo equipo
+            {limiteEquiposAlcanzado ? "Límite alcanzado" : "Nuevo equipo"}
           </button>
         </div>
       </div>
+
+      {participantesConfig && (
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-700">
+          <p className="font-semibold text-slate-800 mb-1">Configuración desde el wizard</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <span>
+              • Modo: <strong>{participantesConfig.modo}</strong>
+            </span>
+            {participantesConfig.modo === "equipos" && (
+              <>
+                <span>
+                  • Máx. equipos: <strong>{maxEquiposPermitidos ?? "Sin límite"}</strong>
+                </span>
+                <span>
+                  • Integrantes por equipo: <strong>{participantesConfig.minIntegrantes}</strong> a {" "}
+                  <strong>{participantesConfig.maxIntegrantes}</strong>
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {modoEsIndividual && (
         <p className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
           Este evento está configurado como <strong>individual</strong> en el
           wizard de creación, por lo que <strong>no se permite el registro</strong>{" "}
           de equipos. Si necesitas equipos, edita la configuración del evento.
+        </p>
+      )}
+
+      {limiteEquiposAlcanzado && (
+        <p className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          Se alcanzó el máximo de equipos permitido por la configuración del wizard.
+          Para habilitar más registros, ajusta el tope de equipos en la configuración del evento.
         </p>
       )}
 
