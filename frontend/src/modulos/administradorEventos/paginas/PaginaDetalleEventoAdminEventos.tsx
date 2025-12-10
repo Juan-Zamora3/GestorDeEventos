@@ -46,7 +46,7 @@ interface EventoConfig {
     fechaInicioInscripciones?: string;
     fechaFinInscripciones?: string;
     descripcion?: string;
-    fotoNombre?: string | null;
+    fotoNombre?: string | null; // URL de la imagen del evento
   };
   participantes: {
     modalidadRegistro?: "individual" | "equipos";
@@ -71,12 +71,8 @@ interface EventoConfig {
 }
 
 export const PaginaDetalleEventoAdminEventos: React.FC = () => {
+  const { idEvento } = useParams<{ idEvento: string }>();
   const navigate = useNavigate();
-
-  // 👇 Leemos cualquier variante razonable del parámetro
-  const params = useParams();
-  const idEvento =
-    (params as any).idEvento ?? (params as any).id ?? undefined;
 
   const [evento, setEvento] = useState<EventoConfig | null>(null);
   const [tab, setTab] = useState<Tab>("informacion");
@@ -86,7 +82,7 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
   useEffect(() => {
     const cargar = async () => {
       if (!idEvento) {
-        setError("No se encontró el identificador del evento en la URL.");
+        setError("No se encontró el identificador del evento.");
         setCargando(false);
         return;
       }
@@ -94,8 +90,6 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
       try {
         setCargando(true);
         setError(null);
-
-        console.log("[Detalle AdminEventos] params:", params, "idEvento:", idEvento);
 
         const ref = doc(db, "eventos", idEvento);
         const snap = await getDoc(ref);
@@ -107,6 +101,7 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
         }
 
         const data = snap.data() as any;
+
         setEvento({
           informacion: data.informacion ?? {},
           participantes: data.participantes ?? {},
@@ -123,7 +118,6 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
     };
 
     cargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idEvento]);
 
   if (cargando) {
@@ -163,51 +157,96 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
   const tiempos =
     (ajustes.tiempos ?? []) as { id: string; etiqueta: string }[];
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "informacion", label: "Información" },
-    { id: "equipos", label: "Equipos" },
-    { id: "participantes", label: "Participantes" },
-    { id: "personal", label: "Personal" },
-    { id: "asistencias", label: "Asistencias" },
-    { id: "plantillas", label: "Plantillas" },
-    { id: "constancias", label: "Constancias" },
-    { id: "formulario", label: "Formulario" },
+  // Para esconder tarjetas que no estén configuradas
+  const tieneFechasEvento =
+    informacion.fechaInicioEvento || informacion.fechaFinEvento;
+  const tieneFechasInscripciones =
+    informacion.fechaInicioInscripciones || informacion.fechaFinInscripciones;
+  const tieneModalidad = participantes.modalidadRegistro !== undefined;
+  const tieneMaxParticipantes =
+    participantes.maxParticipantes !== undefined &&
+    participantes.maxParticipantes !== null;
+
+  const tieneConfigClave =
+    ajustes.tomarAsistenciaQR !== undefined ||
+    ajustes.envioPorCorreo !== undefined ||
+    ajustes.costoInscripcion !== undefined ||
+    !!ajustes.medioEnvioQR;
+
+  // Tabs (algunas dependen de la configuración)
+  const tabs: { id: Tab; label: string; visible: boolean }[] = [
+    { id: "informacion", label: "Información", visible: true },
+    { id: "equipos", label: "Equipos", visible: true }, // se maneja mensaje cuando no es por equipos
+    { id: "participantes", label: "Participantes", visible: true },
+    {
+      id: "personal",
+      label: "Personal",
+      visible: rolesPersonal.length > 0,
+    },
+    {
+      id: "asistencias",
+      label: "Asistencias",
+      visible: tiempos.length > 0 || tieneQR,
+    },
+    { id: "plantillas", label: "Plantillas", visible: true },
+    {
+      id: "constancias",
+      label: "Constancias",
+      visible: tieneEnvioCorreo,
+    },
+    {
+      id: "formulario",
+      label: "Formulario",
+      visible: campos.length > 0,
+    },
   ];
+
+  const tabsVisibles = tabs.filter((t) => t.visible);
+
+  // Si la pestaña actual ya no es visible (por ejemplo, sin campos), regresamos a "informacion"
+  if (!tabsVisibles.find((t) => t.id === tab)) {
+    setTimeout(() => setTab("informacion"), 0);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#192D69] to-[#476AC6] text-white">
       {/* HEADER + TABS */}
-      <header className="px-14 pt-10 pb-6">
-        <div className="flex items-center gap-4 mb-6">
+      <header className="px-10 sm:px-14 pt-8 pb-6">
+        <div className="flex flex-wrap items-center gap-4 mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center text-2xl leading-none"
+            className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center text-2xl leading-none hover:bg-white/25 transition"
           >
             ←
           </button>
-          <div>
+          <div className="min-w-[200px]">
             <p className="text-xs uppercase tracking-[0.26em] text-white/70 mb-1">
               Administrador de eventos
             </p>
-            <h1 className="text-[32px] font-semibold tracking-tight">
+            <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-tight">
               {informacion.nombreEvento ?? "Evento sin título"}
             </h1>
-            <p className="text-xs text-white/70 mt-1">
-              {informacion.fechaInicioEvento} – {informacion.fechaFinEvento}
-            </p>
+            {(informacion.fechaInicioEvento ||
+              informacion.fechaFinEvento) && (
+              <p className="text-xs text-white/70 mt-1">
+                {informacion.fechaInicioEvento ?? "—"} –{" "}
+                {informacion.fechaFinEvento ?? "—"}
+              </p>
+            )}
           </div>
         </div>
 
-        <nav className="mt-4">
+        {/* Tabs estilo navbar (similar a tus capturas) */}
+        <nav className="mt-4 overflow-x-auto">
           <div className="inline-flex bg-white/10 rounded-full p-1 backdrop-blur-sm">
-            {tabs.map((t) => {
+            {tabsVisibles.map((t) => {
               const activo = t.id === tab;
               return (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
+                  className={`px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
                     activo
                       ? "bg-white text-[#192D69] shadow-sm"
                       : "text-white/80 hover:bg-white/10"
@@ -222,115 +261,167 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
       </header>
 
       {/* CONTENIDO */}
-      <main className="px-14 pb-10">
-        <div className="bg-[#F6F7FB] rounded-3xl p-8 text-slate-900 shadow-md min-h-[420px]">
-          {/* INFORMACIÓN */}
+      <main className="px-4 sm:px-10 lg:px-14 pb-10">
+        <div className="bg-[#F6F7FB] rounded-3xl p-6 sm:p-8 text-slate-900 shadow-md min-h-[420px]">
+          {/* ========== INFORMACIÓN ========== */}
           {tab === "informacion" && (
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <h2 className="text-lg font-semibold text-slate-900 mb-3">
-                  Detalles del evento
-                </h2>
-                <p className="text-sm text-slate-700 whitespace-pre-line">
-                  {informacion.descripcion || "Sin descripción registrada."}
-                </p>
-
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] text-slate-500 mb-1">
-                      Fechas del evento
-                    </p>
-                    <p className="font-semibold text-slate-800">
-                      {informacion.fechaInicioEvento || "—"}{" "}
-                      <span className="text-slate-400">a</span>{" "}
-                      {informacion.fechaFinEvento || "—"}
-                    </p>
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+              {/* Columna izquierda: tarjeta con imagen + descripción (similar a la que me enviaste) */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                  <div className="h-40 sm:h-48 bg-gradient-to-r from-[#7C4DFF] via-[#5C6BC0] to-[#42A5F5] flex items-center justify-center">
+                    {informacion.fotoNombre ? (
+                      <img
+                        src={informacion.fotoNombre}
+                        alt={informacion.nombreEvento ?? "Imagen del evento"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center px-6">
+                        <p className="text-xs font-medium text-white/80 tracking-[0.2em] uppercase mb-1">
+                          Evento académico
+                        </p>
+                        <p className="text-lg sm:text-xl font-semibold text-white">
+                          {informacion.nombreEvento ?? "Evento sin título"}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] text-slate-500 mb-1">
-                      Inscripciones
+                  <div className="p-5 sm:p-6">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-2">
+                      Descripción
                     </p>
-                    <p className="font-semibold text-slate-800">
-                      {informacion.fechaInicioInscripciones || "—"}{" "}
-                      <span className="text-slate-400">a</span>{" "}
-                      {informacion.fechaFinInscripciones || "—"}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] text-slate-500 mb-1">
-                      Modalidad
-                    </p>
-                    <p className="font-semibold text-slate-800">
-                      {participantes.modalidadRegistro === "equipos"
-                        ? "Por equipos"
-                        : "Individual"}
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                    <p className="text-[11px] text-slate-500 mb-1">
-                      Máx. participantes
-                    </p>
-                    <p className="font-semibold text-slate-800">
-                      {participantes.maxParticipantes
-                        ? participantes.maxParticipantes
-                        : "Sin límite definido"}
+                    <p className="text-sm text-slate-700 whitespace-pre-line">
+                      {informacion.descripcion || "Sin descripción registrada."}
                     </p>
                   </div>
                 </div>
+
+                {/* Fechas, modalidad, etc., SOLO si están configuradas */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {tieneFechasEvento && (
+                    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                      <p className="text-[11px] text-slate-500 mb-1">
+                        Fechas del evento
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {informacion.fechaInicioEvento || "—"}{" "}
+                        {informacion.fechaInicioEvento &&
+                          informacion.fechaFinEvento && (
+                            <span className="text-slate-400">a</span>
+                          )}{" "}
+                        {informacion.fechaFinEvento || ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {tieneFechasInscripciones && (
+                    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                      <p className="text-[11px] text-slate-500 mb-1">
+                        Inscripciones
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {informacion.fechaInicioInscripciones || "—"}{" "}
+                        {informacion.fechaInicioInscripciones &&
+                          informacion.fechaFinInscripciones && (
+                            <span className="text-slate-400">a</span>
+                          )}{" "}
+                        {informacion.fechaFinInscripciones || ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {tieneModalidad && (
+                    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                      <p className="text-[11px] text-slate-500 mb-1">
+                        Modalidad de registro
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {participantes.modalidadRegistro === "equipos"
+                          ? "Por equipos"
+                          : "Individual"}
+                      </p>
+                    </div>
+                  )}
+
+                  {tieneMaxParticipantes && (
+                    <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                      <p className="text-[11px] text-slate-500 mb-1">
+                        Máx. participantes
+                      </p>
+                      <p className="font-semibold text-slate-800">
+                        {participantes.maxParticipantes}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900 mb-3">
-                  Configuración clave
-                </h2>
-                <ul className="space-y-2 text-xs">
-                  <li className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
-                    <span className="text-slate-600">Asistencia por QR</span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                        tieneQR
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {tieneQR ? "Activa" : "No activa"}
-                    </span>
-                  </li>
-                  <li className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
-                    <span className="text-slate-600">
-                      Envío de constancias por correo
-                    </span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                        tieneEnvioCorreo
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {tieneEnvioCorreo ? "Habilitado" : "No habilitado"}
-                    </span>
-                  </li>
-                  <li className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
-                    <span className="text-slate-600">Costo inscripción</span>
-                    <span className="font-semibold text-slate-800">
-                      {ajustes.costoInscripcion &&
-                      ajustes.costoInscripcion > 0
-                        ? `$${ajustes.costoInscripcion} MXN`
-                        : "Sin costo registrado"}
-                    </span>
-                  </li>
-                  <li className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
-                    <span className="text-slate-600">Medio envío QR</span>
-                    <span className="font-semibold text-slate-800">
-                      {ajustes.medioEnvioQR || "No especificado"}
-                    </span>
-                  </li>
-                </ul>
-              </div>
+              {/* Columna derecha: tarjetas de configuración clave, SOLO si hay algo configurado */}
+              {tieneConfigClave && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-slate-900">
+                    Configuración clave
+                  </h2>
+                  <div className="space-y-2 text-xs">
+                    {ajustes.tomarAsistenciaQR !== undefined && (
+                      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
+                        <span className="text-slate-600">Asistencia por QR</span>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                            ajustes.tomarAsistenciaQR
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {ajustes.tomarAsistenciaQR ? "Activa" : "No activa"}
+                        </span>
+                      </div>
+                    )}
+                    {ajustes.envioPorCorreo !== undefined && (
+                      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
+                        <span className="text-slate-600">
+                          Envío de constancias por correo
+                        </span>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                            ajustes.envioPorCorreo
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {ajustes.envioPorCorreo
+                            ? "Habilitado"
+                            : "No habilitado"}
+                        </span>
+                      </div>
+                    )}
+                    {ajustes.costoInscripcion !== undefined && (
+                      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
+                        <span className="text-slate-600">Costo inscripción</span>
+                        <span className="font-semibold text-slate-800">
+                          {ajustes.costoInscripcion &&
+                          ajustes.costoInscripcion > 0
+                            ? `$${ajustes.costoInscripcion} MXN`
+                            : "Sin costo registrado"}
+                        </span>
+                      </div>
+                    )}
+                    {ajustes.medioEnvioQR && (
+                      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-2 border border-slate-200">
+                        <span className="text-slate-600">Medio envío QR</span>
+                        <span className="font-semibold text-slate-800">
+                          {ajustes.medioEnvioQR}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
-          {/* EQUIPOS */}
+          {/* ========== EQUIPOS ========== */}
           {tab === "equipos" && (
             <>
               {esEquipos ? (
@@ -339,12 +430,13 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
                     Equipos del evento
                   </h2>
                   <p className="text-xs text-slate-600 mb-4">
-                    En esta sección se listarán los equipos registrados al
-                    evento, junto con su categoría, integrantes y estatus.
+                    Aquí se listarán los equipos registrados al evento, junto
+                    con su categoría, integrantes y estatus. La lógica se
+                    conectará posteriormente con las colecciones de Firebase.
                   </p>
                   <div className="border border-dashed border-slate-300 rounded-2xl px-6 py-10 bg-white/60 text-center text-sm text-slate-400">
-                    Aún no se han integrado los datos de equipos desde la
-                    colección de Firebase. Aquí irá la tabla o grid de equipos.
+                    Pendiente de integrar la tabla o grid de equipos
+                    registrados.
                   </div>
                 </section>
               ) : (
@@ -356,74 +448,86 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
             </>
           )}
 
-          {/* PARTICIPANTES */}
+          {/* ========== PARTICIPANTES ========== */}
           {tab === "participantes" && (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">
                 Configuración de participantes
               </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-xs">
-                <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                  <p className="text-[11px] text-slate-500 mb-1">Modalidad</p>
-                  <p className="font-semibold text-slate-800">
-                    {participantes.modalidadRegistro === "equipos"
-                      ? "Por equipos"
-                      : "Individual"}
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                  <p className="text-[11px] text-slate-500 mb-1">
-                    Máx. participantes
-                  </p>
-                  <p className="font-semibold text-slate-800">
-                    {participantes.maxParticipantes
-                      ? participantes.maxParticipantes
-                      : "Sin límite definido"}
-                  </p>
-                </div>
+                {tieneModalidad && (
+                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                    <p className="text-[11px] text-slate-500 mb-1">
+                      Modalidad
+                    </p>
+                    <p className="font-semibold text-slate-800">
+                      {participantes.modalidadRegistro === "equipos"
+                        ? "Por equipos"
+                        : "Individual"}
+                    </p>
+                  </div>
+                )}
+                {tieneMaxParticipantes && (
+                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                    <p className="text-[11px] text-slate-500 mb-1">
+                      Máx. participantes
+                    </p>
+                    <p className="font-semibold text-slate-800">
+                      {participantes.maxParticipantes}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <h3 className="text-sm font-semibold text-slate-900 mb-2">
-                Categorías
-              </h3>
-              {categorias.length === 0 ? (
-                <p className="text-xs text-slate-500">
-                  No se han configurado categorías para este evento.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                  {categorias.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="bg-white rounded-2xl border border-slate-200 px-4 py-3"
-                    >
-                      <p className="font-semibold text-slate-800">
-                        {cat.nombre}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Cupo: {cat.cupo}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+              {categorias.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-slate-900 mb-2">
+                    Categorías
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                    {categorias.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className="bg-white rounded-2xl border border-slate-200 px-4 py-3"
+                      >
+                        <p className="font-semibold text-slate-800">
+                          {cat.nombre}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Cupo: {cat.cupo}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
+
+              {categorias.length === 0 &&
+                !tieneModalidad &&
+                !tieneMaxParticipantes && (
+                  <p className="text-xs text-slate-500">
+                    No hay configuración adicional de participantes para este
+                    evento.
+                  </p>
+                )}
             </section>
           )}
 
-          {/* PERSONAL */}
+          {/* ========== PERSONAL ========== */}
           {tab === "personal" && (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">
                 Personal del evento
               </h2>
               <p className="text-xs text-slate-600 mb-4">
-                Estos roles se configuraron en el wizard de creación del evento.
-                Posteriormente podrás asociar personas a cada rol.
+                Solo se muestran los roles que fueron configurados durante la
+                creación del evento.
               </p>
 
               {rolesPersonal.length === 0 ? (
                 <p className="text-xs text-slate-500">
-                  No hay roles de personal configurados.
+                  No hay personal configurado para este evento.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
@@ -436,9 +540,11 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
                         <p className="font-semibold text-slate-800 mb-1">
                           {rol.nombre}
                         </p>
-                        <p className="text-[11px] text-slate-500">
-                          {rol.descripcion || "Sin descripción."}
-                        </p>
+                        {rol.descripcion && (
+                          <p className="text-[11px] text-slate-500">
+                            {rol.descripcion}
+                          </p>
+                        )}
                       </div>
                       <div className="mt-3">
                         <span
@@ -458,75 +564,68 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
             </section>
           )}
 
-          {/* ASISTENCIAS */}
+          {/* ========== ASISTENCIAS ========== */}
           {tab === "asistencias" && (
             <>
-              {tieneQR ? (
+              {tieneQR || tiempos.length > 0 ? (
                 <section>
                   <h2 className="text-lg font-semibold text-slate-900 mb-3">
                     Asistencias por QR
                   </h2>
                   <p className="text-xs text-slate-600 mb-4">
-                    Aquí se mostrará el resumen de pases de lista, tiempos de
+                    Aquí se integrará el resumen de pases de lista, tiempos de
                     entrada/salida y el historial de lecturas de QR del evento.
                   </p>
 
-                  <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 text-xs">
-                    <p className="font-semibold text-slate-800 mb-2">
-                      Tiempos configurados
-                    </p>
-                    {tiempos.length === 0 ? (
-                      <p className="text-[11px] text-slate-500">
-                        No se han configurado tiempos de asistencia en el
-                        evento.
+                  {tiempos.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 text-xs mb-4">
+                      <p className="font-semibold text-slate-800 mb-2">
+                        Tiempos configurados
                       </p>
-                    ) : (
                       <ul className="space-y-1 text-slate-600">
                         {tiempos.map((t) => (
-                          <li
-                            key={t.id}
-                            className="flex items-center gap-2"
-                          >
+                          <li key={t.id} className="flex items-center gap-2">
                             <span className="h-2 w-2 rounded-full bg-[#5B4AE5]" />
                             {t.etiqueta}
                           </li>
                         ))}
                       </ul>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  <div className="mt-4 border border-dashed border-slate-300 rounded-2xl px-6 py-8 bg-slate-50/80 text-center text-sm text-slate-400">
+                  <div className="border border-dashed border-slate-300 rounded-2xl px-6 py-8 bg-slate-50/80 text-center text-sm text-slate-400">
                     Aquí irá la tabla de registros de asistencia (participante,
                     hora de lectura, estado, etc.).
                   </div>
                 </section>
               ) : (
                 <div className="p-10 text-sm text-slate-600 bg-white rounded-2xl">
-                  Este evento no tiene activado el registro por QR.
+                  Este evento no tiene configurados tiempos de asistencia ni
+                  registro por QR.
                 </div>
               )}
             </>
           )}
 
-          {/* PLANTILLAS */}
+          {/* ========== PLANTILLAS ========== */}
           {tab === "plantillas" && (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">
                 Plantillas de constancias
               </h2>
               <p className="text-xs text-slate-600 mb-4">
-                Desde aquí se vincularán las plantillas de constancias
-                específicas para este evento (participantes, ganadores, jurado,
-                staff, etc.).
+                Aquí se vincularán las plantillas de constancias específicas
+                para este evento (participantes, ganadores, jurado, staff,
+                etc.). Solo se mostrarán las plantillas que se asocien al
+                evento desde el módulo de diseño de plantillas.
               </p>
               <div className="border border-dashed border-slate-300 rounded-2xl px-6 py-10 bg-white/60 text-center text-sm text-slate-400">
                 Pendiente de integrar con el módulo de plantillas y constancias.
-                Aquí se mostrarán las plantillas asociadas al evento.
               </div>
             </section>
           )}
 
-          {/* CONSTANCIAS */}
+          {/* ========== CONSTANCIAS ========== */}
           {tab === "constancias" && (
             <>
               {tieneEnvioCorreo ? (
@@ -535,9 +634,10 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
                     Constancias
                   </h2>
                   <p className="text-xs text-slate-600 mb-4">
-                    En este apartado se integrará la vista de selección de
-                    roles, previsualización y envío de constancias por correo,
-                    además del historial de envíos.
+                    En esta vista se integrará la selección de roles,
+                    previsualización y envío de constancias por correo, además
+                    del historial de envíos. Solo se mostrará para eventos que
+                    tengan habilitado el envío por correo.
                   </p>
                   <div className="border border-dashed border-slate-300 rounded-2xl px-6 py-10 bg-white/60 text-center text-sm text-slate-400">
                     Aquí irá la tabla de participantes, el filtro por rol
@@ -553,15 +653,15 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
             </>
           )}
 
-          {/* FORMULARIO */}
+          {/* ========== FORMULARIO ========== */}
           {tab === "formulario" && (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-3">
                 Formulario de registro
               </h2>
               <p className="text-xs text-slate-600 mb-4">
-                Estos son los campos que se capturan cuando una persona se
-                registra al evento.
+                Solo se listan los campos que fueron configurados para el
+                formulario de registro de este evento.
               </p>
 
               {campos.length === 0 ? (
@@ -574,7 +674,7 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="text-left px-4 py-2 font-semibold">
-                          Nombre del Campo
+                          Nombre del campo
                         </th>
                         <th className="text-left px-4 py-2 font-semibold">
                           Tipo
@@ -602,8 +702,7 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
                             )}
                           </td>
                           <td className="px-4 py-2">
-                            {campo.tipoCampo === "texto_corto" &&
-                              "Texto corto"}
+                            {campo.tipoCampo === "texto_corto" && "Texto corto"}
                             {campo.tipoCampo === "email" && "Email"}
                             {campo.tipoCampo === "telefono" && "Teléfono"}
                             {campo.tipoCampo === "seleccion_multiple" &&
@@ -627,4 +726,5 @@ export const PaginaDetalleEventoAdminEventos: React.FC = () => {
   );
 };
 
+// Export default por si lo importas así en algún lado
 export default PaginaDetalleEventoAdminEventos;
