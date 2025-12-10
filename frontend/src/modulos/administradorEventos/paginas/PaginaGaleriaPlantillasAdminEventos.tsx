@@ -4,7 +4,11 @@ import { FiSearch } from "react-icons/fi";
 import FilaPlantillasRapidas from "../componentes/IncioEvento/FilaPlantillasRapidas";
 import TarjetaPlantillaEvento from "../componentes/IncioEvento/TarjetaPlantillaEvento";
 import type { PlantillaEvento } from "../../../api/eventosAdminEventosApi";
-import { obtenerPlantillasEvento } from "../../../api/eventosAdminEventosApi";
+import {
+  obtenerPlantillasEvento,
+  eliminarPlantillaEvento,
+  crearPersonalPlantillaPorDefecto,
+} from "../../../api/eventosAdminEventosApi";
 
 export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +17,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
 
   const [plantillasDb, setPlantillasDb] = useState<PlantillaEvento[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => setShowPanel(true), 80);
@@ -43,6 +48,15 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
     coverUrl: "/evento-blanco.png",
     config: {
       // config mínima; el wizard la rellenará
+      infoEvento: {
+        nombre: "",
+        descripcion: "",
+        fechaInicioEvento: "",
+        fechaFinEvento: "",
+        fechaInicioInscripciones: "",
+        fechaFinInscripciones: "",
+        imagenPortadaUrl: null,
+      },
       ajuste: {
         caracteristicas: {
           asistencia_qr: true,
@@ -68,6 +82,7 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
           lider_equipo: [],
         },
       },
+      personal: crearPersonalPlantillaPorDefecto(),
     },
     createdAt: null,
     createdBy: undefined,
@@ -88,8 +103,34 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
 
   const irCrearEventoDesdePlantilla = (plantilla: PlantillaEvento) => {
     navigate("/admin-eventos/crear/informacion", {
-      state: { plantillaId: plantilla.id, slideIn: true, plantillaConfig: plantilla.config },
+      state: {
+        plantillaId: plantilla.id,
+        slideIn: true,
+        plantillaConfig: {
+          ajuste: plantilla.config?.ajuste,
+          participantes: plantilla.config?.participantes,
+          personal: plantilla.config?.personal,
+        },
+      },
     });
+  };
+
+  const eliminarPlantilla = async (plantilla: PlantillaEvento) => {
+    const confirmar = window.confirm(
+      `¿Eliminar la plantilla "${plantilla.nombrePlantilla}"? Esta acción no se puede deshacer.`,
+    );
+    if (!confirmar || plantilla.id === "blank") return;
+
+    try {
+      setEliminandoId(plantilla.id);
+      await eliminarPlantillaEvento(plantilla.id);
+      setPlantillasDb((prev) => prev.filter((p) => p.id !== plantilla.id));
+    } catch (err) {
+      console.error("[Galería plantillas] Error al eliminar:", err);
+      alert("No se pudo eliminar la plantilla. Intenta nuevamente.");
+    } finally {
+      setEliminandoId(null);
+    }
   };
 
   return (
@@ -141,15 +182,36 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
 
         <div className="mt-8 grid gap-x-8 gap-y-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 text-slate-900">
           {filtradas.map((p) => (
-            <TarjetaPlantillaEvento
-              key={p.id}
-              plantilla={{
-                id: p.id,
-                titulo: p.nombrePlantilla,
-                imagen: p.coverUrl,
-              }}
-              onClick={() => irCrearEventoDesdePlantilla(p)}
-            />
+            <div key={p.id} className="space-y-2">
+              <TarjetaPlantillaEvento
+                plantilla={{
+                  id: p.id,
+                  titulo: p.nombrePlantilla,
+                  imagen: p.coverUrl,
+                }}
+                onClick={() => irCrearEventoDesdePlantilla(p)}
+              />
+
+              {p.id !== "blank" && (
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => irCrearEventoDesdePlantilla(p)}
+                    className="flex-1 rounded-full bg-[#5B4AE5] text-white py-2 font-semibold shadow-sm hover:brightness-110"
+                  >
+                    Usar plantilla
+                  </button>
+                  <button
+                    type="button"
+                    disabled={eliminandoId === p.id}
+                    onClick={() => eliminarPlantilla(p)}
+                    className="px-3 py-2 rounded-full border border-white/40 text-white/80 backdrop-blur-sm hover:text-white hover:border-white disabled:opacity-60"
+                  >
+                    {eliminandoId === p.id ? "Eliminando..." : "Eliminar"}
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 

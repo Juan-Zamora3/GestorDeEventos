@@ -45,6 +45,18 @@ export type CampoEvento = {
   immutable?: boolean;
 };
 
+export type RolPersonalConfig = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  activo?: boolean;
+};
+
+export type PersonalConfig = {
+  roles: RolPersonalConfig[];
+  camposPorRol: Record<string, CampoEvento[]>;
+};
+
 export type ParticipantesDraft = {
   modo: "individual" | "equipos";
   maxParticipantes: string;
@@ -74,11 +86,139 @@ export type InfoEventoConfig = {
   imagenPortadaUrl?: string | null;
 };
 
+const crearInfoEventoPlantillaVacia = (): InfoEventoConfig => ({
+  nombre: "",
+  descripcion: "",
+  fechaInicioEvento: "",
+  fechaFinEvento: "",
+  fechaInicioInscripciones: "",
+  fechaFinInscripciones: "",
+  imagenPortadaUrl: null,
+});
+
+const crearAjustePlantillaPorDefecto = (): AjusteConfig => ({
+  caracteristicas: {
+    asistencia_qr: true,
+    confirmacion_pago: false,
+    envio_correo: true,
+    asistencia_tiempos: false,
+  },
+  envioQR: "correo",
+  costoInscripcion: "",
+  tiempos: [],
+});
+
+const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
+  modo: "individual",
+  maxParticipantes: "",
+  maxEquipos: "",
+  minIntegrantes: "1",
+  maxIntegrantes: "5",
+  seleccion: { asesor: false, lider_equipo: false },
+  camposPorPerfil: {
+    participante: [],
+    asesor: [],
+    integrante: [],
+    lider_equipo: [],
+  },
+});
+
+export const rolesPersonalBase: RolPersonalConfig[] = [
+  {
+    id: "coordinadores",
+    nombre: "Coordinadores",
+    descripcion: "Organizan, planifican y supervisan actividades del evento.",
+    activo: true,
+  },
+  {
+    id: "jurado",
+    nombre: "Jurado",
+    descripcion: "Evalúan y verifican objetivos del evento.",
+    activo: true,
+  },
+  {
+    id: "colaboradores",
+    nombre: "Colaboradores",
+    descripcion: "Apoyan actividades para alcanzar objetivos.",
+    activo: true,
+  },
+  {
+    id: "asesores",
+    nombre: "Asesores",
+    descripcion: "Orientan y brindan apoyo especializado.",
+    activo: false,
+  },
+  {
+    id: "patrocinadores",
+    nombre: "Patrocinadores",
+    descripcion: "Aportan recursos y apoyo.",
+    activo: false,
+  },
+  {
+    id: "invitados",
+    nombre: "Invitados",
+    descripcion: "Participan de manera especial en el evento.",
+    activo: false,
+  },
+  {
+    id: "edecanes",
+    nombre: "Edecanes",
+    descripcion: "Apoyan logística y atención.",
+    activo: false,
+  },
+  {
+    id: "coord-edecanes",
+    nombre: "Coordinadores de edecanes",
+    descripcion: "Supervisan a edecanes.",
+    activo: false,
+  },
+];
+
+export const camposBasePersonal: CampoEvento[] = [
+  { id: "campo-nombre", nombre: "Nombre", tipo: "texto", immutable: true },
+  {
+    id: "campo-apellido-paterno",
+    nombre: "Apellido paterno",
+    tipo: "texto",
+    immutable: true,
+  },
+  {
+    id: "campo-apellido-materno",
+    nombre: "Apellido materno",
+    tipo: "texto",
+    immutable: true,
+  },
+  {
+    id: "campo-correo",
+    nombre: "Correo",
+    tipo: "texto",
+    immutable: true,
+  },
+];
+
+export const camposExtraPersonal: CampoEvento[] = [
+  { id: "campo-institucion", nombre: "Institución", tipo: "opciones" },
+];
+
+const crearCamposPorRolPersonal = () => {
+  const mapa: Record<string, CampoEvento[]> = {};
+  rolesPersonalBase.forEach((r) => {
+    mapa[r.id] = [...camposBasePersonal, ...camposExtraPersonal];
+  });
+  return mapa;
+};
+
+export const crearPersonalPlantillaPorDefecto = (): PersonalConfig => ({
+  roles: rolesPersonalBase.map((r) => ({ ...r })),
+  camposPorRol: crearCamposPorRolPersonal(),
+});
+
 /** Configuración completa que se guarda en un evento */
 export type ConfigEvento = {
   infoEvento: InfoEventoConfig;
   ajuste: AjusteConfig;
   participantes: ParticipantesDraft;
+  personal: PersonalConfig;
 };
 
 /**
@@ -93,7 +233,7 @@ export type PlantillaEvento = {
   nombrePlantilla: string;
   tipo: "concurso" | "foro" | "curso" | "robotica" | "otro";
   coverUrl: string;
-  config: Omit<ConfigEvento, "infoEvento">;
+  config: ConfigEvento;
   createdAt: any;
   createdBy?: {
     uid?: string;
@@ -101,6 +241,17 @@ export type PlantillaEvento = {
     correo?: string;
   };
 };
+
+const coverPorTipo: Record<PlantillaEvento["tipo"], string> = {
+  concurso: "/Concurso.png",
+  foro: "/Foro.png",
+  curso: "/Cursos.png",
+  robotica: "/Robotica.png",
+  otro: "/EventoBlanco.png",
+};
+
+export const obtenerCoverPorTipo = (tipo: PlantillaEvento["tipo"]): string =>
+  coverPorTipo[tipo] ?? coverPorTipo.otro;
 
 /**
  * AUDITORÍA
@@ -151,6 +302,7 @@ export async function crearEventoDesdeWizard(
       infoEvento: config.infoEvento,
       ajuste: config.ajuste,
       participantes: config.participantes,
+      personal: config.personal,
     },
     estado: "activo",
     plantillaBaseId: opciones?.plantillaBaseId ?? null,
@@ -189,10 +341,13 @@ export async function guardarPlantillaEvento(
   const plantillaDoc = await addDoc(colRef, {
     nombrePlantilla: datos.nombrePlantilla,
     tipo: datos.tipo,
-    coverUrl: datos.coverUrl,
+    coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
+      // No persistimos la información específica del evento (nombre, fechas, portada).
+      infoEvento: crearInfoEventoPlantillaVacia(),
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
+      personal: configActual.personal,
     },
     createdAt: serverTimestamp(),
     createdBy: actor ?? null,
@@ -221,8 +376,17 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       id: d.id,
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
-      coverUrl: data.coverUrl ?? "/Concurso.png",
-      config: data.config,
+      coverUrl:
+        data.coverUrl ||
+        coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
+        "/EventoBlanco.png",
+      config: {
+        infoEvento: crearInfoEventoPlantillaVacia(),
+        ajuste: data.config?.ajuste ?? crearAjustePlantillaPorDefecto(),
+        participantes:
+          data.config?.participantes ?? crearParticipantesPlantillaPorDefecto(),
+        personal: data.config?.personal ?? crearPersonalPlantillaPorDefecto(),
+      },
       createdAt: data.createdAt,
       createdBy: data.createdBy,
     };
@@ -230,6 +394,13 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
 
   // Puedes añadir aquí una plantilla "en blanco" fija si quieres
   return items;
+}
+
+export async function eliminarPlantillaEvento(
+  plantillaId: string,
+): Promise<void> {
+  const ref = doc(db, "plantillasEvento", plantillaId);
+  await deleteDoc(ref);
 }
 
 /**
@@ -282,6 +453,7 @@ export async function cargarConfigEvento(
         lider_equipo: [],
       },
     },
+    personal: cfg.personal ?? crearPersonalPlantillaPorDefecto(),
   };
 }
 

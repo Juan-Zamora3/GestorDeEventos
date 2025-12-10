@@ -98,6 +98,7 @@ const SeccionFormulario: FC = () => {
     infoEvento,
     setSlideDir,
     onFinalizar,
+    onGuardarPlantilla,
   } = useOutletContext<CrearEventoOutletContext>();
 
   const modo = participantes.modo;
@@ -115,6 +116,7 @@ const SeccionFormulario: FC = () => {
   >(undefined);
 
   const [guardando, setGuardando] = useState(false);
+  const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const abrirCrear = () => {
@@ -331,6 +333,32 @@ const SeccionFormulario: FC = () => {
     }
   };
 
+  const handleGuardarPlantilla = async () => {
+    if (guardando || guardandoPlantilla) return;
+
+    try {
+      setGuardandoPlantilla(true);
+      setError(null);
+
+      if (!infoEvento.nombre.trim()) {
+        setError("Asigna un nombre al evento antes de guardar la plantilla.");
+        setGuardandoPlantilla(false);
+        return;
+      }
+
+      await onGuardarPlantilla();
+    } catch (err) {
+      console.error("[SeccionFormulario] Error al guardar plantilla", err);
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "No se pudo guardar la plantilla. Intenta de nuevo.",
+      );
+    } finally {
+      setGuardandoPlantilla(false);
+    }
+  };
+
   return (
     <section className="flex-1 h-full min-h-0 flex flex-col">
       <div className="px-10 pt-10 flex items-center justify-between">
@@ -456,9 +484,28 @@ const SeccionFormulario: FC = () => {
           setSlideDir("prev");
           navigate("../ajuste");
         }}
-        onNext={handleFinalizar}
         step={{ current: 5, total: 5 }}
-        nextLabel={guardando ? "Guardando..." : "Finalizar"}
+        rightSlot={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleGuardarPlantilla}
+              disabled={guardando || guardandoPlantilla}
+              className="px-6 py-2.5 rounded-full border border-slate-200 bg-white text-slate-700 text-sm font-semibold disabled:opacity-60"
+            >
+              {guardandoPlantilla ? "Guardando plantilla..." : "Guardar plantilla"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFinalizar}
+              className="px-8 py-2.5 rounded-full bg-gradient-to-r from-[#5B4AE5] to-[#7B5CFF] text-white text-sm font-semibold disabled:opacity-60"
+              disabled={guardando}
+            >
+              {guardando ? "Guardando..." : "Finalizar"}
+            </button>
+          </div>
+        }
       />
 
       <ModalPreguntaFormulario
