@@ -14,6 +14,7 @@ import {
   type ConfigEvento,
   crearEventoDesdeWizard,
   guardarPlantillaEvento,
+  obtenerCoverPorTipo,
 } from "../../../api/eventosAdminEventosApi";
 
 // 🔹 Tipos exportados para otros componentes del wizard
@@ -181,7 +182,6 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       ...plantillaConfig.infoEvento,
     }));
 
-
     if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
     if (plantillaConfig?.participantes)
       setParticipantes(plantillaConfig.participantes);
@@ -251,16 +251,26 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
       );
       if (!nombrePlantilla) return;
 
-      const tipo = window.prompt(
+      const tipo = (window.prompt(
         'Tipo de plantilla (concurso, foro, curso, robotica, otro):',
         "concurso",
-      ) as any;
+      ) || "otro") as any;
+
+      const coverSugerido = obtenerCoverPorTipo(tipo as any);
+      const coverPersonalizado = window.prompt(
+        "URL de imagen de portada para la plantilla (opcional):",
+        coverSugerido,
+      );
+
+      const coverElegido = coverPersonalizado?.trim()
+        ? coverPersonalizado.trim()
+        : coverSugerido;
 
       await guardarPlantillaEvento(
         {
           nombrePlantilla,
-          tipo: tipo || "otro",
-          coverUrl: cfg.infoEvento.imagenPortadaUrl || "/Concurso.png",
+          tipo: (tipo as any) || "otro",
+          coverUrl: coverElegido,
         },
         cfg,
         {
