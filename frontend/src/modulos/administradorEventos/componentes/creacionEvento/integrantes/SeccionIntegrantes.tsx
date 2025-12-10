@@ -5,7 +5,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import { FiUser, FiUsers } from "react-icons/fi";
 
-import type { CampoEvento } from "../../tiposAdminEventos";
+import type { CampoEvento } from "../../../../../api/adminEventosApi";
 import ModalCampoEvento from "../ModalCampoEvento";
 import ModalCategoriaIntegrantes, {
   type Categoria,

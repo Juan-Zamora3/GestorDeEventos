@@ -9,7 +9,7 @@ import ModalPreguntaFormulario, {
   type TipoCampo,
   type PreguntaForm,
 } from "./ModalPreguntaFormulario";
-import type { CampoEvento } from "../../tiposAdminEventos";
+import type { CampoEvento } from "../../../../../api/adminEventosApi";
 import type { CrearEventoOutletContext } from "../../../paginas/PaginaCrearEventoAdminEventos";
 
 const genId = () => `preg-${Math.random().toString(36).slice(2, 8)}`;
@@ -94,7 +94,6 @@ const SeccionFormulario: FC = () => {
 
   const {
     participantes,
-    ajuste,
     infoEvento,
     setSlideDir,
     onFinalizar,
@@ -191,7 +190,7 @@ const SeccionFormulario: FC = () => {
 
     if (modo === "individual") {
       (participantes.camposPorPerfil["participante"] ?? []).forEach(
-        (c, idx) => {
+        (c: CampoEvento, idx: number) => {
           const p = mapCampoToPregunta(c as CampoEvento, idx);
           auto.push({
             ...p,
