@@ -202,12 +202,17 @@ export async function guardarPlantillaEvento(
     tipo: datos.tipo,
     coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
+
       // No persistimos la imagen de portada del paso de información;
       // las plantillas usan un ícono por tipo o el que defina el usuario.
       infoEvento: {
         ...configActual.infoEvento,
         imagenPortadaUrl: null,
       },
+
+      // Se guarda la configuración completa del wizard, incluida la portada
+      infoEvento: configActual.infoEvento,
+
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
     },
@@ -238,10 +243,14 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       id: d.id,
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
+
       coverUrl:
         data.coverUrl ||
         coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
         "/EventoBlanco.png",
+
+      coverUrl: data.coverUrl ?? "/Concurso.png",
+
       config: data.config ?? {
         infoEvento: {
           nombre: "",
@@ -250,7 +259,11 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
           fechaFinEvento: "",
           fechaInicioInscripciones: "",
           fechaFinInscripciones: "",
+
           imagenPortadaUrl: null,
+
+          imagenPortadaUrl: data.coverUrl ?? "/Concurso.png",
+
         },
         ajuste: {
           caracteristicas: {
