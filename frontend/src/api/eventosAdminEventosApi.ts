@@ -74,6 +74,43 @@ export type InfoEventoConfig = {
   imagenPortadaUrl?: string | null;
 };
 
+const crearInfoEventoPlantillaVacia = (): InfoEventoConfig => ({
+  nombre: "",
+  descripcion: "",
+  fechaInicioEvento: "",
+  fechaFinEvento: "",
+  fechaInicioInscripciones: "",
+  fechaFinInscripciones: "",
+  imagenPortadaUrl: null,
+});
+
+const crearAjustePlantillaPorDefecto = (): AjusteConfig => ({
+  caracteristicas: {
+    asistencia_qr: true,
+    confirmacion_pago: false,
+    envio_correo: true,
+    asistencia_tiempos: false,
+  },
+  envioQR: "correo",
+  costoInscripcion: "",
+  tiempos: [],
+});
+
+const crearParticipantesPlantillaPorDefecto = (): ParticipantesDraft => ({
+  modo: "individual",
+  maxParticipantes: "",
+  maxEquipos: "",
+  minIntegrantes: "1",
+  maxIntegrantes: "5",
+  seleccion: { asesor: false, lider_equipo: false },
+  camposPorPerfil: {
+    participante: [],
+    asesor: [],
+    integrante: [],
+    lider_equipo: [],
+  },
+});
+
 /** Configuración completa que se guarda en un evento */
 export type ConfigEvento = {
   infoEvento: InfoEventoConfig;
@@ -203,6 +240,9 @@ export async function guardarPlantillaEvento(
     coverUrl: datos.coverUrl || coverPorTipo[datos.tipo] || "/EventoBlanco.png",
     config: {
 
+      // No persistimos la información específica del evento (nombre, fechas, portada).
+      infoEvento: crearInfoEventoPlantillaVacia(),
+
       // No persistimos la imagen de portada del paso de información;
       // las plantillas usan un ícono por tipo o el que defina el usuario.
       infoEvento: {
@@ -212,6 +252,7 @@ export async function guardarPlantillaEvento(
 
       // Se guarda la configuración completa del wizard, incluida la portada
       infoEvento: configActual.infoEvento,
+
 
       ajuste: configActual.ajuste,
       participantes: configActual.participantes,
@@ -244,10 +285,19 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
       nombrePlantilla: data.nombrePlantilla ?? "Plantilla sin nombre",
       tipo: (data.tipo ?? "otro") as PlantillaEvento["tipo"],
 
+
+
       coverUrl:
         data.coverUrl ||
         coverPorTipo[(data.tipo as PlantillaEvento["tipo"]) ?? "otro"] ||
         "/EventoBlanco.png",
+
+      config: {
+        infoEvento: crearInfoEventoPlantillaVacia(),
+        ajuste: data.config?.ajuste ?? crearAjustePlantillaPorDefecto(),
+        participantes:
+          data.config?.participantes ?? crearParticipantesPlantillaPorDefecto(),
+
 
       coverUrl: data.coverUrl ?? "/Concurso.png",
 
@@ -290,6 +340,7 @@ export async function obtenerPlantillasEvento(): Promise<PlantillaEvento[]> {
             lider_equipo: [],
           },
         },
+
       },
       createdAt: data.createdAt,
       createdBy: data.createdBy,

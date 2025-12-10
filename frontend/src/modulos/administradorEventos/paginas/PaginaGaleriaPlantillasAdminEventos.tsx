@@ -47,6 +47,15 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
     coverUrl: "/evento-blanco.png",
     config: {
       // config mínima; el wizard la rellenará
+      infoEvento: {
+        nombre: "",
+        descripcion: "",
+        fechaInicioEvento: "",
+        fechaFinEvento: "",
+        fechaInicioInscripciones: "",
+        fechaFinInscripciones: "",
+        imagenPortadaUrl: null,
+      },
       ajuste: {
         caracteristicas: {
           asistencia_qr: true,
@@ -92,7 +101,14 @@ export const PaginaGaleriaPlantillasAdminEventos: React.FC = () => {
 
   const irCrearEventoDesdePlantilla = (plantilla: PlantillaEvento) => {
     navigate("/admin-eventos/crear/informacion", {
-      state: { plantillaId: plantilla.id, slideIn: true, plantillaConfig: plantilla.config },
+      state: {
+        plantillaId: plantilla.id,
+        slideIn: true,
+        plantillaConfig: {
+          ajuste: plantilla.config?.ajuste,
+          participantes: plantilla.config?.participantes,
+        },
+      },
     });
   };
 

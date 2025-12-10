@@ -177,10 +177,12 @@ export const PaginaCrearEventoAdminEventos: React.FC = () => {
     const plantillaConfig = state?.plantillaConfig;
 
 
+
     if (plantillaConfig?.infoEvento) setInfoEvento((prev) => ({
       ...prev,
       ...plantillaConfig.infoEvento,
     }));
+
 
     if (plantillaConfig?.ajuste) setAjuste(plantillaConfig.ajuste);
     if (plantillaConfig?.participantes)
