@@ -174,7 +174,9 @@ const SeccionPersonal: FC = () => {
     if ((campo as any).immutable) return;
 
     setModalCampoModo("editar");
- 
+    setCampoSeleccionadoId(campoId);
+    setCampoEditando(campo);
+
     setModalCampoAbierto(true);
   };
 
