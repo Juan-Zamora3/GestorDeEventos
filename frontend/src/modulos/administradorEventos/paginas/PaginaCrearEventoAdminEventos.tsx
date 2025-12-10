@@ -8,7 +8,6 @@ import AsidePasosCrearEvento from "../componentes/creacionEvento/AsidePasosCrear
 
 // 🔹 API central
 import {
-  type Tiempo,
   type AjusteConfig,
   type ParticipantesDraft,
   type PersonalConfig,
@@ -16,9 +15,8 @@ import {
   crearEventoDesdeWizard,
   guardarPlantillaEvento,
   obtenerCoverPorTipo,
-
   crearPersonalPlantillaPorDefecto,
-} from "../../../api/eventosAdminEventosApi";
+} from "../../../api/adminEventosApi";
 
 // 🔹 Tipos exportados para otros componentes del wizard
 export type InfoEventoDraft = {
